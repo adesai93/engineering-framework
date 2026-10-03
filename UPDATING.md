@@ -39,8 +39,10 @@ The rulebook only changes HERE (the maintainer machine) through the weekly
 retro, so it stays identical everywhere:
 - `workspace.mjs` disables pushing from the rulebook clone on client laptops
   (`git push` fails with a message pointing here). Pulling works as normal.
-- On GitHub, `main` only accepts changes through a pull request with the CI
-  check passing: no direct or force pushes.
+- On GitHub, every commit that lands on `main` without a merged pull request
+  fails CI ("provenance"): you get a red X and an email. (Blocking direct
+  pushes outright needs a ruleset, which on a private repo requires GitHub
+  Pro; the ruleset is ready to apply if you upgrade.)
 - Strongest: don't sign in to GitHub with write access on client laptops.
   Clone with a read-only token instead (fine-grained token, this repo only,
   Contents: Read-only), e.g.

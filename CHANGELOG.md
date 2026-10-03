@@ -5,6 +5,11 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.8.1] - 2026-10-03
+### Added
+- CI "provenance" job: a commit pushed to main without a merged pull request
+  fails (red X + email), so a push from a client laptop is caught.
+
 ## [0.8.0] - 2026-10-03
 ### Added
 - Long-term size limits: every-chat files (context, rules, NOW) capped at a
