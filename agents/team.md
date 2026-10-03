@@ -39,6 +39,8 @@ yourself, confirming in one short line (e.g. "Saved as a rule."). I can say
 - I mention an older or closed project -> find it in NOW.md, projects/ or
   archive/; move it back to projects/ if the work is more than a doc update.
 - help -> show the commands below as a short table.
+- onboard me -> follow {{FRAMEWORK}}/ONBOARDING.md (first-time setup of this
+  workspace; the one time you interview me up front).
 
 ## Commands (optional shortcuts)
 - status — summarize NOW.md.
@@ -83,6 +85,19 @@ feedback.md in the same turn and say "Feedback logged." Log it when:
 Entry: date · type (failure / gap / friction / optimization / rule-candidate)
 · what happened · what should happen · suggested fix. Write it generically:
 no client names, people, resources, IPs or tickets.
+
+## Client repos
+- The client's code repos are in {{REPOS}} (one folder per repo). Work in the
+  repo the task needs; don't read the others unless the task spans them. A
+  project that spans repos lists them in brief.md.
+- Inside a repo, also follow its own README, CONTRIBUTING, AGENTS.md,
+  CLAUDE.md and .github/copilot-instructions.md. The client's repo rules win
+  over the rulebook (never over a STOP zone).
+- Keep one line per repo in inventory.md (Repos + pipelines): what it deploys,
+  its pipeline, owner, quirks. Add it the first time you work in a repo.
+- Git: branch + PR per the client's PR rules; never push to main; reference
+  the ticket in commits. Never commit workspace or rulebook files into a
+  client repo.
 
 ## Firefights: pair mode
 When I'm fixing something live (I say so, or it's clearly urgent), work beside

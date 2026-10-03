@@ -9,6 +9,7 @@
 | Update a workspace after rulebook changes | `node tools/workspace.mjs update ~/work/client-a` |
 | Check the rulebook | `node tools/check.mjs` |
 | Clone a client code repo | `git clone <url> ~/work/client-a/repos/<name>` |
+| Already have the clones elsewhere | add `--repos <folder>` to `new` or `update` |
 
 Pick one tool per client where you can: VS Code also reads Claude-format
 agents, so with both installed the specialists may show twice in Copilot.
@@ -17,6 +18,11 @@ agents, so with both installed the specialists may show twice in Copilot.
 - Claude Code: `cd ~/work/client-b` then `claude`
 - VS Code + Copilot: open `~/work/client-a/client-a.code-workspace`
   (it includes the rulebook folder so Copilot can read it)
+
+## First chat in a new workspace
+Say **"onboard me"**. The lead interviews you once (stack, scanners, governed
+solutions, access, people, current work), fills the workspace and runs a
+smoke test. See ONBOARDING.md.
 
 ## In chat: just talk
 You don't need to memorize anything. Say what you're doing in plain words; the
