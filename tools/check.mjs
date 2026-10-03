@@ -66,7 +66,7 @@ function checkAgents(ctx) {
       if (!h.label || !h.prompt) out.push(fail(a.file, 1, 'handoff needs "agent | label | prompt"'));
     }
   }
-  try { render({ framework: '/fw', tools: ['claude', 'copilot'], client: 'check' }); } catch (e) {
+  try { render({ framework: '/fw', tools: ['claude', 'copilot', 'cursor'], client: 'check' }); } catch (e) {
     out.push(fail('tools/workspace.mjs', 1, `render failed: ${e.message}`));
   }
   return out;
