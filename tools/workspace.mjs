@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Creates and updates client workspaces. Node built-ins only.
-//   node tools/workspace.mjs new <client> <path> [--tools claude,copilot] [--repos <dir>]
+//   node tools/workspace.mjs new <client> <path> [--tools claude,copilot,cursor] [--repos <dir>]
 //   node tools/workspace.mjs update <path> [--repos <dir>]
 // --repos: a folder of existing client clones (default: <workspace>/repos).
 // A workspace holds ONE client's memory (context, NOW, projects, logs) and the
@@ -13,7 +13,7 @@ import { execFileSync } from 'node:child_process';
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const TEMPLATE = join(ROOT, 'workspace-template');
 const CONFIG = '.engineering-framework.json';
-const TOOLS = ['claude', 'copilot'];
+const TOOLS = ['claude', 'copilot', 'cursor'];
 
 const normalize = (s) => s.replace(/^﻿/, '').replace(/\r\n?/g, '\n');
 const read = (p) => normalize(readFileSync(p, 'utf8'));
@@ -80,6 +80,19 @@ export function render({ framework, tools, client, repos }, root = ROOT) {
       }
       out[`.github/agents/${a.name}.agent.md`] = `---\n${fm.join('\n')}\n---\n${note(a.file)}\n\n${absolutize(a.body, fw)}`;
     }
+  }
+  // Cursor reads AGENTS.md natively for the team rules; subagents go in .cursor/agents.
+  if (tools.includes('cursor')) {
+    for (const a of agents) {
+      const fm = [`name: ${a.name}`, `description: ${yamlStr(a.meta.description || '')}`];
+      if (a.meta.readonly === 'true') fm.push('readonly: true');
+      out[`.cursor/agents/${a.name}.md`] = `---\n${fm.join('\n')}\n---\n${note(a.file)}\n\n${absolutize(a.body, fw)}`;
+    }
+    // Cursor agent permissions (documented for the Cursor CLI): no writes to the rulebook.
+    out['.cursor/cli.json'] = JSON.stringify({ permissions: { deny: [`Write(${fw}/**)`] } }, null, 2) + '\n';
+  }
+  // VS Code and Cursor: one workspace file opening this workspace + the rulebook.
+  if (tools.includes('copilot') || tools.includes('cursor')) {
     out[`${client}.code-workspace`] = JSON.stringify({
       folders: [{ name: client, path: '.' }, ...(repos ? [{ name: `${client} repos`, path: reposDir }] : []),
         { name: 'engineering-framework (rulebook)', path: fw }],
@@ -250,7 +263,7 @@ function cmdUpdate(path, repos) {
 }
 
 function usage() {
-  console.error('usage:\n  node tools/workspace.mjs new <client> <path> [--tools claude,copilot] [--repos <dir>]\n  node tools/workspace.mjs update <path> [--repos <dir>]\n  node tools/workspace.mjs upgrade   (checked pull of the rulebook + refresh)\n  node tools/workspace.mjs refresh   (regenerate every workspace on this machine; runs after git pull)');
+  console.error('usage:\n  node tools/workspace.mjs new <client> <path> [--tools claude,copilot,cursor] [--repos <dir>]\n  node tools/workspace.mjs update <path> [--repos <dir>]\n  node tools/workspace.mjs upgrade   (checked pull of the rulebook + refresh)\n  node tools/workspace.mjs refresh   (regenerate every workspace on this machine; runs after git pull)');
   process.exit(2);
 }
 function die(msg) { console.error(`error: ${msg}`); process.exit(1); }
@@ -258,7 +271,7 @@ function die(msg) { console.error(`error: ${msg}`); process.exit(1); }
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const [cmd, ...rest] = process.argv.slice(2);
   const ti = rest.indexOf('--tools');
-  let tools = TOOLS;
+  let tools = ['claude', 'copilot']; // default; add cursor with --tools
   if (ti >= 0) { tools = (rest[ti + 1] || '').split(',').filter(Boolean); rest.splice(ti, 2); }
   if (!tools.length || tools.some((t) => !TOOLS.includes(t))) die(`--tools takes a comma list of: ${TOOLS.join(', ')}`);
   const ri = rest.indexOf('--repos');

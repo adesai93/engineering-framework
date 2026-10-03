@@ -5,7 +5,7 @@
 |---|---|
 | Get the rulebook | `git clone https://github.com/adesai93/engineering-framework.git ~/engineering-framework` |
 | New client workspace | `node tools/workspace.mjs new client-a ~/work/client-a --tools copilot` |
-| Both tools | `--tools claude,copilot` (default) |
+| Pick tools | `--tools claude`, `copilot`, `cursor`, or a comma list (default `claude,copilot`) |
 | Get the latest rulebook (weekly) | `git -C ~/engineering-framework pull`, or tell the agent "update the team" (UPDATING.md) |
 | Update one workspace | `node tools/workspace.mjs update ~/work/client-a` |
 | Check the rulebook | `node tools/check.mjs` |
@@ -19,6 +19,9 @@ agents, so with both installed the specialists may show twice in Copilot.
 - Claude Code: `cd ~/work/client-b` then `claude`
 - VS Code + Copilot: open `~/work/client-a/client-a.code-workspace`
   (it includes the rulebook folder so Copilot can read it)
+- Cursor: open the same `client-a.code-workspace` in Cursor (File > Open
+  Workspace from File). Team rules come from AGENTS.md; specialists from
+  .cursor/agents/.
 
 ## First chat in a new workspace
 Say **"onboard me"**. The lead asks one batch of questions, then writes
@@ -52,8 +55,9 @@ or "help" to see the shortcuts.
 `research: <topic>` · `design: <problem>` · `build:` / `fix:` / `deploy:` ·
 `review` · `feedback: <note>` · `retro` (weekly report) · `help`
 
-Claude Code: the lead calls the specialists itself. Copilot: pick architect,
-engineer or security from the agent menu; handoff buttons pass work along.
+Claude Code and Cursor: the lead calls the specialists itself. Copilot: pick
+architect, engineer or security from the agent menu; handoff buttons pass
+work along.
 
 ## First test (about 15 minutes)
 1. Create a throwaway workspace: `node tools/workspace.mjs new sandbox ~/work/sandbox`

@@ -2,7 +2,7 @@
 
 My portable engineering team: a lead agent plus architect, engineer,
 security-reviewer and retro specialists, for platform / DevSecOps / network / security
-work across Azure, AWS and GCP. Works with Claude Code and GitHub Copilot.
+work across Azure, AWS and GCP. Works with Claude Code, GitHub Copilot and Cursor.
 
 This repo is the team's RULEBOOK. It travels to every engagement and never
 holds client data. Each client gets a separate local WORKSPACE that holds that
@@ -38,7 +38,8 @@ Requires Node 18+ and git.
   security gates, docs), `lenses.md`, playbooks, doc templates.
 - `workspace-template/` — what a new client workspace starts as.
 - `tools/workspace.mjs` — creates workspaces and generates each tool's agent
-  files (Claude Code subagents, Copilot custom agents, instructions).
+  files (Claude Code subagents, Copilot custom agents, Cursor subagents,
+  instructions).
 - `tools/check.mjs` — consistency check; CI runs it on pushes to main and PRs.
 
 ## Changing the team

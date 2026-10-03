@@ -5,6 +5,12 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.7.0] - 2026-10-03
+### Added
+- Cursor support (`--tools cursor`): team rules via AGENTS.md (read natively),
+  subagents in .cursor/agents/ (security is readonly), .cursor/cli.json deny
+  on rulebook writes, and the shared .code-workspace (rulebook read-only).
+
 ## [0.6.1] - 2026-10-03
 ### Changed
 - A plain `git pull` of the rulebook is enough: a post-merge hook (installed
