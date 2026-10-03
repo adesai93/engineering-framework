@@ -5,6 +5,18 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.8.0] - 2026-10-03
+### Added
+- Long-term size limits: every-chat files (context, rules, NOW) capped at a
+  page; project logs rotate past ~300 lines (older entries to log-<YYYY>.md);
+  superseded rules/decisions move to history/; never read a 300+ line file
+  whole. `tidy` does it on demand; the lead offers it when a file is over.
+- Client laptops are pull-only: workspace.mjs points the rulebook's push URL
+  at a blocker (maintainer machine opts out via engfw.maintainer); UPDATING.md
+  covers the GitHub ruleset on main and read-only tokens.
+- CI size budget for the team rules (agents/team.md <= ~4k tokens, each
+  specialist <= ~750) so weekly changes can't quietly bloat every chat.
+
 ## [0.7.2] - 2026-10-03
 ### Fixed
 - "update the team" also runs `workspace.mjs update` on the current

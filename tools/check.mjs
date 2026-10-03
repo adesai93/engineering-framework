@@ -234,6 +234,21 @@ function checkNoClientData(ctx) {
 }
 
 // g. CHANGELOG.md has a release; its latest version is what docs record as framework-version.
+// h. Size budgets: agents/team.md is loaded into EVERY chat, so weekly iterations
+// must not quietly grow it. ~4 chars per token.
+const BUDGETS = [['agents/team.md', 16000], ['agents/architect.md', 3000], ['agents/engineer.md', 3000],
+  ['agents/security.md', 3000], ['agents/retro.md', 3000]];
+function checkBudgets(ctx) {
+  const out = [];
+  for (const [f, max] of BUDGETS) {
+    if (!ctx.fileSet.has(f)) continue;
+    const n = read(f).length;
+    if (f === 'agents/team.md') ctx.teamTokens = Math.round(n / 4);
+    if (n > max) out.push(fail(f, 1, `${n} chars > budget ${max} (~${Math.round(max / 4)} tokens). Trim before adding.`));
+  }
+  return out;
+}
+
 function checkChangelog(ctx) {
   if (!ctx.fileSet.has(CHANGELOG)) return [fail(CHANGELOG, 1, 'missing at repo root')];
   const versions = [...read(CHANGELOG).matchAll(/^## \[(\d+)\.(\d+)\.(\d+)\]/gm)].map((m) => m.slice(1, 4).map(Number));
@@ -251,6 +266,7 @@ const CHECKS = [
   ['doc types <-> templates', checkTemplates],
   ['no client data committed', checkNoClientData],
   ['changelog release', checkChangelog],
+  ['size budgets', checkBudgets],
 ];
 
 function main() {
@@ -280,7 +296,7 @@ function main() {
     return;
   }
   console.log(`framework-check OK: ${CHECKS.length} checks passed; ${ctx.docs.length} docs, `
-    + `${ctx.refCount} references; framework version ${ctx.version}.`);
+    + `${ctx.refCount} references; team rules ~${ctx.teamTokens} tokens; framework version ${ctx.version}.`);
 }
 
 main();
