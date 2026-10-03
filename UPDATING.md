@@ -34,6 +34,22 @@ first time you run `workspace.mjs new` or `update` on a machine.
    the fix it suggests. Don't edit rulebook files to resolve it.
 4. Tell me: "Updated. Start a new chat to load the new rules."
 
+## Client laptops are pull-only
+The rulebook only changes HERE (the maintainer machine) through the weekly
+retro, so it stays identical everywhere:
+- `workspace.mjs` disables pushing from the rulebook clone on client laptops
+  (`git push` fails with a message pointing here). Pulling works as normal.
+- On GitHub, `main` only accepts changes through a pull request with the CI
+  check passing: no direct or force pushes.
+- Strongest: don't sign in to GitHub with write access on client laptops.
+  Clone with a read-only token instead (fine-grained token, this repo only,
+  Contents: Read-only), e.g.
+  `git clone https://<read-only-token>@github.com/adesai93/engineering-framework.git`
+  (or let Git Credential Manager store that token).
+- The maintainer machine opts out of the push block once:
+  `git -C <rulebook> config engfw.maintainer true`, then
+  `git -C <rulebook> config --unset remote.origin.pushurl`.
+
 ## If something goes wrong
 - "Not possible to fast-forward" / local commits: the rulebook was changed on
   this laptop. `node tools/workspace.mjs upgrade` shows what changed and how to

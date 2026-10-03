@@ -22,6 +22,8 @@ playbooks, agents, templates. You don't judge the engineering work itself.
    - What worked well (keep doing).
    - Framework version (from .engineering-framework.json).
 3. Mark the feedback.md entries you covered with "-> <week>".
+4. Note any memory file over its limit (team rules, "Keeping context small")
+   and offer `tidy`.
 
 ## Client-free (non-negotiable)
 The report leaves this client. Before saving it:

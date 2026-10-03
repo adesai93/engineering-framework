@@ -56,7 +56,8 @@ or "help" to see the shortcuts.
 `quick: <task>` · `log: <note>` · `close <project>` · `remember: <fact>` ·
 `correct: <wrong> -> <right>` · `decide: <decision>` · `document` ·
 `research: <topic>` · `design: <problem>` · `build:` / `fix:` / `deploy:` ·
-`review` · `feedback: <note>` · `retro` (weekly report) · `help`
+`review` · `feedback: <note>` · `retro` (weekly report) · `tidy` (compact
+memory files) · `help`
 
 Claude Code and Cursor: the lead calls the specialists itself. Copilot: pick
 architect, engineer or security from the agent menu; handoff buttons pass

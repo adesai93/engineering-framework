@@ -12,6 +12,8 @@ Common to every tool:
 - Open the WORKSPACE (or its .code-workspace file), never a single repo or the
   rulebook on its own: that's how the agent finds the team and the memory.
 - First chat: "onboard me". Updates: `git pull` in the rulebook (UPDATING.md).
+- The rulebook clone on a client laptop is pull-only (UPDATING.md). Best:
+  clone it with a read-only token, not your own GitHub login.
 
 ---
 

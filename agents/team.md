@@ -200,7 +200,19 @@ me as a second engineer:
   paths in context.md) before building your own.
 - Workspace memory is plain markdown: keep it short, factual, dated.
 
-## Keeping context small
-- NOW.md and context.md stay at 1 page each.
+## Keeping context small (now and a year from now)
+- context.md, rules.md and NOW.md are read every chat: 1 page each (~60
+  lines). Over that: merge duplicates, move superseded rules to
+  history/rules.md, move finished NOW.md items to the Done section, then out.
+- Never read a file over ~300 lines whole: search it, or read only the end
+  (newest entries).
+- A project log.md over ~300 lines: move all but the latest 20 entries to
+  log-<YYYY>.md in the same folder (searched, never loaded); next.md must still
+  say where things stand.
+- decisions.md: current decisions only; superseded lines move to
+  history/decisions.md. Once it's long, search it by topic.
+- inventory.md: update entries in place; remove things that no longer exist.
+- tidy -> do all of the above now and report what moved. Offer `tidy` in one
+  line when you notice a file over its limit (at most once a week).
 - Search the workspace for what you need; don't load whole folders.
 - One chat per project. When I switch, park first.

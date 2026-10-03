@@ -219,6 +219,18 @@ function installPullHook() {
   mkdirSync(hooks, { recursive: true });
   writeFileSync(p, `#!/bin/sh\n${HOOK_MARK}\n[ -n "$ENGFW_NO_HOOK" ] && exit 0\nnode "$(git rev-parse --show-toplevel)/tools/workspace.mjs" refresh\n`, { mode: 0o755 });
   try { execFileSync('git', ['config', 'pull.ff', 'only'], { cwd: ROOT, stdio: 'ignore' }); } catch { /* best effort */ }
+  blockPush();
+}
+
+// Client laptops are pull-only: point origin's PUSH url at a name that can't
+// resolve, so `git push` fails with a pointer to UPDATING.md. Pulls still use
+// the normal url. The maintainer's machine opts out: git config engfw.maintainer true
+export const PUSH_BLOCK = 'NO-PUSH-from-client-laptops--changes-go-through-the-weekly-retro--see-UPDATING.md';
+function blockPush() {
+  let maintainer = '';
+  try { maintainer = gitOut(ROOT, ['config', '--get', 'engfw.maintainer']); } catch { /* unset */ }
+  if (maintainer === 'true') return;
+  try { execFileSync('git', ['config', 'remote.origin.pushurl', PUSH_BLOCK], { cwd: ROOT, stdio: 'ignore' }); } catch { /* best effort */ }
 }
 
 function git(ws, args) {
