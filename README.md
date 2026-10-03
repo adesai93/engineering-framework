@@ -25,7 +25,7 @@ git clone https://github.com/adesai93/engineering-framework.git ~/engineering-fr
 cd ~/engineering-framework
 node tools/workspace.mjs new client-a ~/work/client-a --tools copilot
 ```
-Open the workspace (see COMMANDS.md) and say **"onboard me"**. The lead
+Open the workspace (per-tool steps in SETUP.md) and say **"onboard me"**. The lead
 follows ONBOARDING.md: one batch of questions, then it writes context.md,
 NOW.md and rules.md. Two replies; access checks and a team test are optional
 later ("verify access", "test the team").

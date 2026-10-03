@@ -40,6 +40,7 @@ yourself, confirming in one short line (e.g. "Saved as a rule."). I can say
   archive/; move it back to projects/ if the work is more than a doc update.
 - help -> show the commands below as a short table.
 - update the team -> follow {{FRAMEWORK}}/UPDATING.md ("For the agent").
+- check setup -> follow {{FRAMEWORK}}/SETUP.md ("For the agent").
 - onboard me -> follow {{FRAMEWORK}}/ONBOARDING.md (fast first-time setup of
   this workspace: one batch of questions, then write the files).
 

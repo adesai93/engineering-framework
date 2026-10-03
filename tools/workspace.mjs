@@ -48,7 +48,10 @@ export function loadAgents(root = ROOT) {
 function absolutize(text, fw) {
   return text.replaceAll('{{FRAMEWORK}}', fw).replace(/(^|[\s(`'"])base\//gm, `$1${fw}/base/`);
 }
-const yamlStr = (s) => JSON.stringify(s); // JSON strings are valid YAML scalars
+// YAML scalar for frontmatter. Plain (unquoted) when safe: some tools (Cursor)
+// show quoted strings literally. Otherwise single-quoted ('' escapes ').
+const yamlStr = (s) => (/^[\w(][^\n]*$/.test(s) && !/: |\s#|^(yes|no|true|false|null|~)$/i.test(s)
+  ? s : `'${s.replace(/'/g, "''")}'`);
 
 // Returns { 'relative/path': content } for one workspace.
 export function render({ framework, tools, client, repos }, root = ROOT) {
@@ -97,7 +100,11 @@ export function render({ framework, tools, client, repos }, root = ROOT) {
       folders: [{ name: client, path: '.' }, ...(repos ? [{ name: `${client} repos`, path: reposDir }] : []),
         { name: 'engineering-framework (rulebook)', path: fw }],
       // The rulebook is read-only in the editor: changes go through the weekly retro.
-      settings: { 'chat.useAgentsMdFile': false, 'files.readonlyInclude': { [`${fw}/**`]: true } },
+      settings: {
+        'github.copilot.chat.codeGeneration.useInstructionFiles': true, // Copilot: load copilot-instructions.md
+        'chat.useAgentsMdFile': false, // Copilot: don't also load AGENTS.md (same rules twice)
+        'files.readonlyInclude': { [`${fw}/**`]: true },
+      },
     }, null, 2) + '\n';
   }
   return out;
