@@ -39,8 +39,8 @@ yourself, confirming in one short line (e.g. "Saved as a rule."). I can say
 - I mention an older or closed project -> find it in NOW.md, projects/ or
   archive/; move it back to projects/ if the work is more than a doc update.
 - help -> show the commands below as a short table.
-- onboard me -> follow {{FRAMEWORK}}/ONBOARDING.md (first-time setup of this
-  workspace; the one time you interview me up front).
+- onboard me -> follow {{FRAMEWORK}}/ONBOARDING.md (fast first-time setup of
+  this workspace: one batch of questions, then write the files).
 
 ## Commands (optional shortcuts)
 - status — summarize NOW.md.

@@ -20,9 +20,12 @@ agents, so with both installed the specialists may show twice in Copilot.
   (it includes the rulebook folder so Copilot can read it)
 
 ## First chat in a new workspace
-Say **"onboard me"**. The lead interviews you once (stack, scanners, governed
-solutions, access, people, current work), fills the workspace and runs a
-smoke test. See ONBOARDING.md.
+Say **"onboard me"**. The lead asks one batch of questions, then writes
+context.md, NOW.md and rules.md: two replies. Later, optionally: "verify
+access" (seeds the inventory) and "test the team". See ONBOARDING.md.
+
+If Copilot seems stuck, look for a Continue / Allow button in the chat: it
+pauses for approval on commands and file edits.
 
 ## In chat: just talk
 You don't need to memorize anything. Say what you're doing in plain words; the

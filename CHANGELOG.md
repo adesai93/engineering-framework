@@ -5,6 +5,12 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.5.1] - 2026-10-03
+### Changed
+- Onboarding is fast: two replies (questions, then write context / NOW /
+  rules and finish). No terminal commands or agent hand-offs during
+  onboarding; "verify access" and "test the team" are optional later.
+
 ## [0.5.0] - 2026-10-03
 ### Added
 - Which information to trust: a 6-tier order (rules > accepted decisions >
