@@ -26,7 +26,8 @@ In one pass, with no further questions:
   next.md) only for items I described as multi-day.
 - rules.md: anything I said as a must ("always", "never").
 Then reply with: what you wrote (3-5 lines), the gaps, and "Ready. Start any
-chat by saying what you're working on."
+chat by saying what you're working on." If anything looked off (agents not
+listed, rulebook not readable), add: "Say 'check setup' to run SETUP.md."
 
 ## Optional, only when I ask later
 - "verify access": run read-only checks I allowed (or give me one batch of

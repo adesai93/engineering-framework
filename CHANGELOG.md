@@ -5,6 +5,16 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.7.1] - 2026-10-03
+### Added
+- SETUP.md: per-tool setup, verification checklist and gotchas for Claude
+  Code, Copilot and Cursor; "check setup" command walks it with me.
+### Fixed
+- Agent frontmatter is plain YAML (Cursor showed quoted descriptions
+  literally). Verified in Cursor 3.7: rules (AGENTS), all four subagents and
+  the read-only rulebook are detected.
+- .code-workspace explicitly enables Copilot instruction files.
+
 ## [0.7.0] - 2026-10-03
 ### Added
 - Cursor support (`--tools cursor`): team rules via AGENTS.md (read natively),

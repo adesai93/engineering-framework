@@ -23,6 +23,9 @@ agents, so with both installed the specialists may show twice in Copilot.
   Workspace from File). Team rules come from AGENTS.md; specialists from
   .cursor/agents/.
 
+Tool-specific setup, checks and fixes (Claude Code, Copilot, Cursor): SETUP.md.
+Say "check setup" and the agent walks through it with you.
+
 ## First chat in a new workspace
 Say **"onboard me"**. The lead asks one batch of questions, then writes
 context.md, NOW.md and rules.md: two replies. Later, optionally: "verify
