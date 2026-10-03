@@ -37,14 +37,14 @@
   <text x="820" y="159" text-anchor="middle" fill="#a3a8b3" font-size="11">how it's judged</text>
   <line x1="864" y1="206" x2="776" y2="206" stroke="#e8e9ec" stroke-width="1.5" marker-end="url(#a)"/>
   <text x="820" y="224" text-anchor="middle" fill="#a3a8b3" font-size="11">results · security</text>
-  <text x="820" y="237" text-anchor="middle" fill="#a3a8b3" font-size="11">PASS / FAIL</text>
+  <text x="820" y="237" text-anchor="middle" fill="#a3a8b3" font-size="11">findings (advisory)</text>
 
   <rect x="870" y="100" width="300" height="165" rx="10" fill="#1b4d26" stroke="#57c46b" stroke-width="2"/>
   <text x="1020" y="132" text-anchor="middle" fill="#e5f8e9" font-size="20" font-weight="700">Team members</text>
   <text x="1020" y="152" text-anchor="middle" fill="#e5f8e9" font-size="12" opacity=".8">specialist agents</text>
   <text x="1020" y="178" text-anchor="middle" fill="#e5f8e9" font-size="13">architect — research, design, ADRs</text>
   <text x="1020" y="196" text-anchor="middle" fill="#e5f8e9" font-size="13">engineer — build, fix, deploy, verify</text>
-  <text x="1020" y="214" text-anchor="middle" fill="#e5f8e9" font-size="13">security — review, PASS / FAIL</text>
+  <text x="1020" y="214" text-anchor="middle" fill="#e5f8e9" font-size="13">security — review, flags findings</text>
   <text x="1020" y="232" text-anchor="middle" fill="#e5f8e9" font-size="13">retro — improves the team itself</text>
   <text x="1020" y="254" text-anchor="middle" fill="#e5f8e9" font-size="11.5" font-family="Consolas, Menlo, monospace" opacity=".85">reviewer is read-only</text>
 
@@ -94,7 +94,7 @@
     <rect x="611" y="472" width="118" height="48" rx="7" fill="#1b4d26" stroke="#57c46b" stroke-width="1.5"/>
     <text x="670" y="492" fill="#e5f8e9">Engineer:</text><text x="670" y="507" fill="#e5f8e9">build + verify</text>
     <rect x="751" y="472" width="118" height="48" rx="7" fill="#4a1f2a" stroke="#f26d6d" stroke-width="1.5"/>
-    <text x="810" y="492" fill="#ffe3e3">Security:</text><text x="810" y="507" fill="#ffe3e3">PASS / FAIL</text>
+    <text x="810" y="492" fill="#ffe3e3">Security:</text><text x="810" y="507" fill="#ffe3e3">flags findings</text>
     <rect x="891" y="472" width="118" height="48" rx="7" fill="#142f6b" stroke="#5b8cff" stroke-width="1.5"/>
     <text x="950" y="492" fill="#e6eeff">Document</text><text x="950" y="507" fill="#e6eeff">change-record</text>
     <rect x="1031" y="472" width="118" height="48" rx="7" fill="#5a470f" stroke="#e2b83f" stroke-width="1.5"/>
@@ -110,7 +110,7 @@
     <line x1="1010" y1="496" x2="1029" y2="496" marker-end="url(#a)"/>
     <polyline points="1090,521 1090,540 110,540 110,523" fill="none" marker-end="url(#a)"/>
   </g>
-  <text x="600" y="558" text-anchor="middle" fill="#a3a8b3" font-size="11.5">corrections become rules · fires switch to pair mode · quick questions skip the loop · security FAIL goes back to the engineer</text>
+  <text x="600" y="558" text-anchor="middle" fill="#a3a8b3" font-size="11.5">corrections become rules · fires switch to pair mode · quick questions skip the loop · security advises, I decide · client scanners do the blocking</text>
 
   <!-- rules travel / memory stays -->
   <text x="600" y="598" text-anchor="middle" fill="#f0729b" font-size="12.5" font-weight="700" letter-spacing="1.5">RULES TRAVEL · MEMORY STAYS WITH THE CLIENT</text>

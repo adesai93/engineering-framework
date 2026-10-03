@@ -16,9 +16,9 @@
    reviewed, apply via pipeline.
 7. Verify: each increment against its exit criteria with real checks: plan /
    apply output, policy compliance, connectivity, failover where it applies.
-8. Review each increment through every lens in base/lenses.md; security PASS
-   required before the next increment. Findings become the next iteration's
-   first tasks; log them.
+8. Review each increment through every lens in base/lenses.md, plus a security
+   review. I see the findings before the next increment and decide what to fix
+   now; deferred findings become the next iteration's first tasks; log them.
 9. Hardening round every 3-4 increments and before onboarding teams: re-review
    the whole platform against the architecture-doc (security, resilience,
    scale, cost, operations); update ADRs; fix before moving on.

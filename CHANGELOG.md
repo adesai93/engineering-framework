@@ -5,6 +5,16 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.3.0] - 2026-10-03
+### Changed
+- Security is advisory. The security agent reports findings by severity
+  (Critical/High flagged at the top, with fixes) and never blocks; each
+  client's own scanners and pipelines do the blocking at their thresholds
+  (recorded in context.md). Disabling or bypassing a client's scanner is still
+  a STOP zone (gate weakening).
+- Security verdict is CLEAR / FINDINGS instead of PASS / FAIL; findings come
+  to me to decide, instead of looping back to the engineer.
+
 ## [0.2.0] - 2026-10-03
 ### Added
 - The team: `agents/team.md` (lead + shared rules), `architect.md`,

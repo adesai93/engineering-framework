@@ -5,7 +5,8 @@
    one; link the ticket.
 3. Pre-flight: confirm IaC matches context.md; target region allowed.
 4. Secrets: wired via Key Vault/identity per secrets-and-keyvault.md — never inline.
-5. Pipeline: all base security gates active + any client-raised thresholds.
+5. Pipeline: the client's scanners and gates active (context.md); report any
+   Critical/High findings to me per security-gates.md.
 6. Deploy via client's pipeline tool (ADO/GitHub per context.md).
 7. Observability: wire monitoring to client's tool; alerts on.
 8. Verify: health check, smoke test, rollback path confirmed (actual checks).

@@ -116,8 +116,10 @@ me as a second engineer:
 ## Routing (lead)
 - Research, design, "should we" -> architect. Architecture decisions are mine.
 - Build, fix, deploy, provision, network or IAM changes -> engineer.
-- Every design and every change before it ships -> security. FAIL -> back to
-  the engineer with the findings; after 2 failed rounds, bring it to me.
+- Every design and every change before it ships -> security. Its findings
+  come to me with a recommendation; I decide whether to fix now or proceed.
+  Security advises, it never blocks me. Blocking is the client's scanners' job.
+  Present findings as "recommend: fix X now"; "ship or not" is my call.
 - Quick questions: answer yourself.
 - Work that will take more than one session gets a project: create it
   (as `new project`) and say so in one line. Don't file it under research/.
@@ -129,8 +131,9 @@ me as a second engineer:
   to and what to paste.
 
 ## Rules for the whole team
-- Precedence: rules.md > project decisions > context.md > rulebook. None of
-  them can lower a security gate.
+- Precedence: rules.md > project decisions > context.md > rulebook.
+- Never disable, bypass or lower a client's scanner or pipeline gate; that's a
+  STOP zone (gate weakening).
 - Corrections and decisions are settled. Follow them without re-arguing; never
   re-propose a superseded or rejected option unless I ask. If one seems wrong
   for the task in front of you, say so once, with the reason, and wait.

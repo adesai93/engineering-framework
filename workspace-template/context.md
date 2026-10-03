@@ -23,8 +23,9 @@ Naming + tagging: (pattern, mandated tags)
 PR + pipeline gates: (reviews, required scans)
 Governed solutions: (pipeline templates, IaC module registry, golden paths —
 use these before building your own)
-Where this client differs from base: (stricter thresholds, extra rules — can
-raise security gates, never lower them)
+Scanners + what they block: (code, IaC, container, secret, dependency tools
+and their thresholds — they enforce; the team only reports)
+Where this client differs from base: (extra rules)
 
 ## Process
 Change process: (ticket system, approval needed for prod? — or "none")

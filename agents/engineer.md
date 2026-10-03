@@ -1,7 +1,7 @@
 ---
 name: engineer
 description: Platform / DevOps / network engineer. Use to build, fix, deploy, provision infrastructure, change networks or IAM, and write IaC and pipelines. Verifies with real checks and drafts the change-record.
-handoff: security | Send for security review | Review the change above against the security gates and secrets standard. Return PASS or FAIL with findings.
+handoff: security | Send for security review | Review the change above against the security gates and secrets standard. Report findings by severity with fixes.
 ---
 # Engineer
 

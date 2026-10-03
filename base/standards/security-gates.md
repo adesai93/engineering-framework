@@ -1,7 +1,13 @@
 # Security Gates Standard
 
 Authority for truth; this distillation for speed. Links below are canonical —
-consult for depth; enforce the subset here by default.
+consult for depth.
+
+## Who blocks
+Each client's own scanners and pipelines (code, IaC, container, secret,
+dependency) do the blocking, at the thresholds that client set. They are
+recorded in context.md. This team never blocks me: the security agent finds
+and reports; I decide whether to fix now or proceed.
 
 ## Authorities (reference, don't copy)
 - OWASP Top 10 + ASVS — app-facing work
@@ -10,24 +16,25 @@ consult for depth; enforce the subset here by default.
 - SLSA — supply-chain / pipeline integrity
 - Cloud-specific: Azure Security Benchmark / AWS Security Pillar / GCP Security Foundations
 
-## Enforced subset (default gates on every pipeline)
-1. Secret scanning — block on any detected secret. No override without waiver.
-2. SAST — static analysis on app code; block on High/Critical.
-3. SCA / dependency scan — block on known Critical CVEs.
-4. IaC scan — Terraform/Bicep checked vs CIS before apply (e.g. Checkov).
-5. Container scan (if applicable) — block on Critical.
+## What the security agent checks
+1. Secrets — none in code, config, pipeline YAML or logs.
+2. App code — SAST-class issues (injection, auth, crypto misuse).
+3. Dependencies — known CVEs.
+4. IaC — CIS-style misconfigurations (Checkov-class findings).
+5. Containers (if applicable) — vulnerable base images, root, exposed ports.
 6. Branch protection — no direct push to main; PR + review required.
-7. Least privilege — no wildcard IAM / overly broad roles merged; elevated
-   access time-bound (PIM/JIT or an enforced end date).
+7. Least privilege — no wildcard IAM / overly broad roles; elevated access
+   time-bound (PIM/JIT or an enforced end date).
 
-## Thresholds (default — client context can RAISE, not lower)
-- Block: Critical always. High on app code.
-- Warn: Medium.
-- Client's context.md sets stricter thresholds, required scanners, control mappings.
+## How findings are reported (never blocking)
+- Critical / High: flagged at the top, each with the fix, so I can't miss it.
+- Medium: listed. Low: one summary line.
+- Say which client scanner will catch it in the pipeline (context.md), if any.
 
 ## STOP-and-confirm
 All zones in base/principles/stop-zones.md. Most relevant here: gate weakening
-(incl. lowering a threshold), network exposure, access breadth.
+(disabling, bypassing or lowering a client's scanner or threshold), network
+exposure, access breadth.
 
 ## Graduation
 Client-specific scanner/threshold/control -> the client's context.md, not here.
