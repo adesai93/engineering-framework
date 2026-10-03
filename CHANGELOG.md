@@ -5,6 +5,11 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.7.2] - 2026-10-03
+### Fixed
+- "update the team" also runs `workspace.mjs update` on the current
+  workspace, so it works on laptops where the pull hook isn't installed yet.
+
 ## [0.7.1] - 2026-10-03
 ### Added
 - SETUP.md: per-tool setup, verification checklist and gotchas for Claude
