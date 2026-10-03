@@ -25,6 +25,9 @@ first time you run `workspace.mjs new` or `update` on a machine.
 1. Run `git -C {{FRAMEWORK}} pull` (or `node {{FRAMEWORK}}/tools/workspace.mjs
    upgrade`, which checks for local rulebook changes first). This needs my
    approval; it's the one command that may change the rulebook.
+   Then run `node {{FRAMEWORK}}/tools/workspace.mjs update <this workspace>`.
+   It's safe to repeat, and it covers laptops where the pull hook isn't
+   installed yet (it installs it).
 2. Report the version change (from the output) and the CHANGELOG.md entries
    added since the old version, in 3-5 lines.
 3. If the pull fails or the rulebook has local changes: show me the output and
