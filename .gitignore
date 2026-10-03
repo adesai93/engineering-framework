@@ -1,0 +1,13 @@
+# Never commit client or project layers to the portable base repo.
+# (Ignore the CONTENTS of clients/, not the folder itself, so the
+#  template below can be re-included — Git can't re-include files
+#  inside a fully ignored directory.)
+clients/*
+projects/
+*.local-overrides.md
+**/governance.md
+**/overrides.md
+
+# ...but DO keep the empty template so it can be copied
+!clients/_template/
+!clients/_template/**
