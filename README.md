@@ -26,8 +26,9 @@ cd ~/engineering-framework
 node tools/workspace.mjs new client-a ~/work/client-a --tools copilot
 ```
 Open the workspace (see COMMANDS.md) and say **"onboard me"**. The lead
-follows ONBOARDING.md: it interviews you once, fills context.md and NOW.md,
-checks its access, seeds the inventory and runs a smoke test.
+follows ONBOARDING.md: one batch of questions, then it writes context.md,
+NOW.md and rules.md. Two replies; access checks and a team test are optional
+later ("verify access", "test the team").
 Requires Node 18+ and git.
 
 ## Layout
