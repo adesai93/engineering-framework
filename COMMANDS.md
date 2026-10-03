@@ -34,7 +34,7 @@ or "help" to see the shortcuts.
 | "Where was I with the runners project?" | Resumes it: recap, next step, blocker |
 | "New thing: build a VPN automation pipeline" | Creates a project (multi-session work) |
 | "No, we always use PowerShell here" | Fixes it and saves a standing rule |
-| "Let's go with option B" | Records the decision; marks what it replaces |
+| "Let's go with option B" | Records the decision (and in decisions.md); marks what it replaces |
 | "Switching to the syslog issue" | Saves where you were, then switches |
 | "Syslog is down, help" | Pair mode: one step at a time, quiet timeline |
 | "Fixed, thanks" | Offers to document; saves your place |

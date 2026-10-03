@@ -5,6 +5,16 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.5.0] - 2026-10-03
+### Added
+- Which information to trust: a 6-tier order (rules > accepted decisions >
+  context > dated inventory > closed outcomes > in-flight work). Plans build
+  only on tiers 1-5; in-flight drafts and Proposed ADRs are labelled leads
+  and appear as "pending change", never as the plan.
+- decisions.md: one index of every Accepted decision across all projects,
+  kept current by decide: and ADR status changes; read before planning.
+- Project brief gets "Related work" with each item's status.
+
 ## [0.4.0] - 2026-10-03
 ### Added
 - ONBOARDING.md + "onboard me": first-time workspace setup run by the lead
