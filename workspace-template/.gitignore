@@ -1,0 +1,3 @@
+# Client code repos are cloned into repos/ and keep their own git history.
+repos/*
+!repos/README.md

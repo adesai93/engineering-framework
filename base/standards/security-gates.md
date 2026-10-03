@@ -17,18 +17,17 @@ consult for depth; enforce the subset here by default.
 4. IaC scan — Terraform/Bicep checked vs CIS before apply (e.g. Checkov).
 5. Container scan (if applicable) — block on Critical.
 6. Branch protection — no direct push to main; PR + review required.
-7. Least privilege — no wildcard IAM / overly broad roles merged.
+7. Least privilege — no wildcard IAM / overly broad roles merged; elevated
+   access time-bound (PIM/JIT or an enforced end date).
 
-## Thresholds (default — client overlay can RAISE, not lower)
+## Thresholds (default — client context can RAISE, not lower)
 - Block: Critical always. High on app code.
 - Warn: Medium.
-- Client overlay sets stricter thresholds, required scanners, control mappings.
+- Client's context.md sets stricter thresholds, required scanners, control mappings.
 
 ## STOP-and-confirm
-- Weakening, skipping, or removing any gate.
-- Lowering a severity threshold.
-- Opening a network path (NSG/SG rule, public endpoint, firewall change).
-- Granting elevated or wildcard permissions.
+All zones in base/principles/stop-zones.md. Most relevant here: gate weakening
+(incl. lowering a threshold), network exposure, access breadth.
 
 ## Graduation
-Client-specific scanner/threshold/control -> clients/<name>/overrides.md, not here.
+Client-specific scanner/threshold/control -> the client's context.md, not here.
