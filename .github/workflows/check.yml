@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   check:
@@ -20,3 +21,22 @@ jobs:
         with:
           node-version: 22
       - run: node tools/check.mjs
+
+  # main changes only through pull requests (from the maintainer machine).
+  # A commit pushed straight to main (e.g. from a client laptop) fails here,
+  # so it shows a red X and GitHub emails the repo owner.
+  provenance:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Commit came through a merged pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prs=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" --jq '[.[] | select(.merged_at != null)] | length')
+          if [ "$prs" -eq 0 ]; then
+            echo "::error::Commit ${{ github.sha }} was pushed directly to main (no merged pull request). The rulebook only changes through PRs from the maintainer machine - see UPDATING.md. Revert it."
+            exit 1
+          fi
+          echo "OK: commit came from a merged pull request."
