@@ -5,6 +5,14 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.6.1] - 2026-10-03
+### Changed
+- A plain `git pull` of the rulebook is enough: a post-merge hook (installed
+  by `new` / `update`) runs `workspace.mjs refresh` to regenerate every
+  workspace on the machine; pulls are fast-forward only.
+- UPDATING.md and "update the team": the agent pulls, reports what changed
+  and asks for a new chat.
+
 ## [0.6.0] - 2026-10-03
 ### Added
 - `workspace.mjs upgrade`: pulls main (fast-forward only) and updates every
