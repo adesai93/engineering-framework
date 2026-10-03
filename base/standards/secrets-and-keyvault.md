@@ -12,7 +12,7 @@ logged client waiver.
 
 ## Defaults (applied silently)
 - Managed/workload identity over secret-bearing service principals.
-- Rotation on; 90 days unless overlay overrides.
+- Rotation on; 90 days unless context.md says otherwise.
 - Least-privilege RBAC — grant to identity, not people.
 - Soft-delete + purge protection ON. Separate vaults per environment.
 
@@ -20,9 +20,9 @@ logged client waiver.
 <client>-<env>-<service>-kv ; secret keys <service>-<purpose>
 
 ## STOP-and-confirm
-- Exposing a secret to a new consumer/identity.
-- Broadening vault access beyond least-privilege.
-- Anything that could put a secret in logs or output.
+All zones in base/principles/stop-zones.md. Most relevant here: secret exposure
+(new consumer/identity, secret in logs/output), access breadth (vault access
+beyond least-privilege), data loss (purging a vault or secret).
 
 ## Verify before done
 [ ] no secret in diff/config/pipeline  [ ] access via identity  [ ] rotation + soft-delete on

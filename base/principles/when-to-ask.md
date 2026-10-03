@@ -12,11 +12,13 @@ assumption in the output.
 - Minor ambiguity with an obvious best choice.
 - Format: "Assuming X (reason). Proceeding."
 
-## STOP and confirm — ONLY these two zones
+## STOP and confirm — ONLY the zones in stop-zones.md
 1. Architecture *design* (you want the thinking) -> use plan mode.
-2. Security-sensitive actions: exposing a secret, opening a network path,
-   weakening/removing a gate, deleting data, anything irreversible.
+2. Security-sensitive or irreversible actions (network exposure, secret
+   exposure, access breadth, gate weakening, data loss, irreversible,
+   unapproved prod change).
+The full, canonical list is base/principles/stop-zones.md.
 
 ## Never ask about
 - Naming, structure, doc format, which playbook — these are decided.
-- Anything answerable by reading base/ or the client overlay.
+- Anything answerable by reading base/ or the client's context.md.

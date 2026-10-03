@@ -1,7 +1,10 @@
 # Documentation Standard
 
 Common header on every doc:
-title / type / author / date / client / project / status / ticket
+title / type / author / date / client / project / status / ticket / framework-version
+
+`framework-version` = the latest released version in CHANGELOG.md, so every
+deliverable records which version of this framework produced it.
 
 ## Types & spines
 - change-record: goal, what changed, why, verify, rollback, root-cause(if fix)
@@ -11,6 +14,11 @@ title / type / author / date / client / project / status / ticket
 - config-reference: what it controls, settings+ranges, examples, failure impact
 - adr: context, options, decision, consequences, status
 - architecture-doc: goals, constraints(from client), design, data flow, security, scale, alternatives
+
+## Templates
+Each type has a fill-in template at base/templates/<type>.md (header + spine).
+Start every doc from its template; the client's context.md may override the format
+or destination.
 
 ## Type selection
 1. You name it -> use it.
