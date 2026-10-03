@@ -55,7 +55,7 @@ engineer or security from the agent menu; handoff buttons pass work along.
 6. New chat: `resume test-dns` -> expect the recap without re-explaining.
 7. `correct: <something it got wrong> -> <right>`. New chat; ask a question
    that hits the rule -> expect it to follow rules.md unprompted.
-8. `design: <small problem>` -> options; then `review` -> PASS/FAIL table.
+8. `design: <small problem>` -> options; then `review` -> findings by severity.
 9. Delete the sandbox folder when done.
 
 ## Two habits
