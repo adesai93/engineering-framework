@@ -25,7 +25,9 @@ git clone https://github.com/adesai93/engineering-framework.git ~/engineering-fr
 cd ~/engineering-framework
 node tools/workspace.mjs new client-a ~/work/client-a --tools copilot
 ```
-Fill in `context.md` in the new workspace, then open it (see COMMANDS.md).
+Open the workspace (see COMMANDS.md) and say **"onboard me"**. The lead
+follows ONBOARDING.md: it interviews you once, fills context.md and NOW.md,
+checks its access, seeds the inventory and runs a smoke test.
 Requires Node 18+ and git.
 
 ## Layout
@@ -42,6 +44,13 @@ Requires Node 18+ and git.
 Edit `agents/` or `base/`, run `node tools/check.mjs`, record it in
 CHANGELOG.md, then run `node tools/workspace.mjs update <workspace>` for each
 workspace. Updates rewrite generated files only, never your notes.
+
+## Client code repos
+Clone them into the workspace's `repos/`, or point the workspace at the folder
+where they already are: `node tools/workspace.mjs update <workspace> --repos <folder>`.
+A chat sees every repo but reads only the one the task needs. Inside a repo,
+that repo's own README / CONTRIBUTING / AGENTS.md / CLAUDE.md rules apply too;
+the inventory keeps one line per repo as the team learns them.
 
 ## Weekly improvement loop
 1. At the client: say `retro`. The retro agent writes a client-free report,

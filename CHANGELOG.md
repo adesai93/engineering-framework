@@ -5,6 +5,15 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.4.0] - 2026-10-03
+### Added
+- ONBOARDING.md + "onboard me": first-time workspace setup run by the lead
+  (one batched interview, context/NOW/rules filled, access checked, inventory
+  seeded, smoke test, handover).
+- Client repos: team rules for working across many repos (repo's own rules
+  apply inside it, one inventory line per repo, branch + PR, never commit
+  workspace files into client repos); `--repos <dir>` for existing clones.
+
 ## [0.3.0] - 2026-10-03
 ### Changed
 - Security is advisory. The security agent reports findings by severity
