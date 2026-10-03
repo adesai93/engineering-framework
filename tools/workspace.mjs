@@ -83,14 +83,20 @@ export function render({ framework, tools, client, repos }, root = ROOT) {
     out[`${client}.code-workspace`] = JSON.stringify({
       folders: [{ name: client, path: '.' }, ...(repos ? [{ name: `${client} repos`, path: reposDir }] : []),
         { name: 'engineering-framework (rulebook)', path: fw }],
-      settings: { 'chat.useAgentsMdFile': false },
+      // The rulebook is read-only in the editor: changes go through the weekly retro.
+      settings: { 'chat.useAgentsMdFile': false, 'files.readonlyInclude': { [`${fw}/**`]: true } },
     }, null, 2) + '\n';
   }
   return out;
 }
 
+// Claude Code permission rules use POSIX paths; "//" anchors at the filesystem root
+// and Windows drives normalize to /c/... (C:/x -> //c/x).
+export const ruleRoot = (p) => '/' + p.replace(/\\/g, '/').replace(/^([A-Za-z]):/, (_, d) => `/${d.toLowerCase()}`);
+
 // Claude Code may only read files under its working directory unless allowed:
-// merge the rulebook into permissions.additionalDirectories, keeping other settings.
+// merge the rulebook into permissions.additionalDirectories, and deny edits to it
+// (an Edit deny covers every file-writing tool), keeping other settings.
 function writeClaudeSettings(ws, fw, repos) {
   const p = join(ws, '.claude/settings.json');
   let s = {};
@@ -100,6 +106,9 @@ function writeClaudeSettings(ws, fw, repos) {
   dirs.add(fw);
   if (repos) dirs.add(repos);
   s.permissions.additionalDirectories = [...dirs];
+  const deny = new Set(s.permissions.deny || []);
+  deny.add(`Edit(${ruleRoot(fw)}/**)`);
+  s.permissions.deny = [...deny];
   mkdirSync(dirname(p), { recursive: true });
   writeFileSync(p, JSON.stringify(s, null, 2) + '\n');
 }
@@ -113,6 +122,59 @@ function install(ws, cfg) {
   }
   if (cfg.tools.includes('claude')) { writeClaudeSettings(ws, cfg.framework, cfg.repos); console.log('  wrote .claude/settings.json'); }
   writeFileSync(join(ws, CONFIG), JSON.stringify({ ...cfg, version: frameworkVersion() }, null, 2) + '\n');
+  remember(ws);
+}
+
+// This machine's workspaces, so `upgrade` can update them all. Local only
+// (gitignored): paths never leave the laptop.
+const REGISTRY = join(ROOT, '.workspaces.local.json');
+function known() {
+  try { return JSON.parse(read(REGISTRY)); } catch { return []; }
+}
+function remember(ws) {
+  const list = new Set(known());
+  list.add(slash(ws));
+  writeFileSync(REGISTRY, JSON.stringify([...list].sort(), null, 2) + '\n');
+}
+
+function gitOut(cwd, args) {
+  return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+}
+
+// Pull the latest rulebook (fast-forward only), then update every workspace on
+// this machine. Refuses if the rulebook was edited locally: it must stay portable.
+function cmdUpgrade() {
+  const before = frameworkVersion();
+  const dirty = gitOut(ROOT, ['status', '--porcelain']);
+  if (dirty) {
+    console.error('The rulebook has local changes, so it is no longer the shared baseline:\n');
+    console.error(dirty.split('\n').map((l) => `  ${l}`).join('\n'));
+    console.error('\nChanges belong in the weekly retro report, not here. To discard them:');
+    console.error('  git -C <rulebook> stash        (keeps them aside)  or');
+    console.error('  git -C <rulebook> checkout -- . && git -C <rulebook> clean -fd   (deletes them)');
+    console.error('Then run upgrade again.');
+    process.exit(1);
+  }
+  try { execFileSync('git', ['fetch', '-q'], { cwd: ROOT, stdio: 'inherit' }); } catch { die('git fetch failed (no network?)'); }
+  const ahead = gitOut(ROOT, ['log', '--oneline', '@{u}..HEAD']);
+  if (ahead) {
+    console.error('The rulebook has local commits that are not on main:\n');
+    console.error(ahead.split('\n').map((l) => `  ${l}`).join('\n'));
+    console.error('\nChanges belong in the weekly retro report, not here. To drop them:');
+    console.error('  git -C <rulebook> reset --hard @{u}');
+    process.exit(1);
+  }
+  try { execFileSync('git', ['pull', '--ff-only', '-q'], { cwd: ROOT, stdio: 'inherit' }); } catch {
+    die('git pull --ff-only failed (local commits or no network). The rulebook must match main: check `git -C <rulebook> log origin/main..`');
+  }
+  console.log(`Rulebook: v${before} -> v${frameworkVersion()}`);
+  const list = known();
+  if (!list.length) console.log('No workspaces registered on this machine yet (run `new`, or `update <path>` once).');
+  for (const ws of list) {
+    if (!existsSync(join(ws, CONFIG))) { console.log(`  skipped ${ws} (no longer a workspace)`); continue; }
+    execFileSync(process.execPath, [fileURLToPath(import.meta.url), 'update', ws], { stdio: 'inherit' });
+  }
+  console.log('\nDone. Start new chats so agents load the new rules.');
 }
 
 function git(ws, args) {
@@ -164,7 +226,7 @@ function cmdUpdate(path, repos) {
 }
 
 function usage() {
-  console.error('usage:\n  node tools/workspace.mjs new <client> <path> [--tools claude,copilot] [--repos <dir>]\n  node tools/workspace.mjs update <path> [--repos <dir>]');
+  console.error('usage:\n  node tools/workspace.mjs new <client> <path> [--tools claude,copilot] [--repos <dir>]\n  node tools/workspace.mjs update <path> [--repos <dir>]\n  node tools/workspace.mjs upgrade   (pull latest rulebook + update every workspace on this machine)');
   process.exit(2);
 }
 function die(msg) { console.error(`error: ${msg}`); process.exit(1); }
@@ -183,5 +245,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   }
   if (cmd === 'new') cmdNew(rest[0], rest[1], tools, repos);
   else if (cmd === 'update') cmdUpdate(rest[0], repos);
+  else if (cmd === 'upgrade') cmdUpgrade();
   else usage();
 }
