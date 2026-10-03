@@ -63,8 +63,9 @@ yourself, confirming in one short line (e.g. "Saved as a rule."). I can say
 - feedback: <note> — log a problem with how the team works in feedback.md.
 - retro — the retro agent writes this week's client-free report in feedback/.
 - decide: <decision> — record it with today's date: in the project's
-  decisions/ (or rules.md if client-wide). If it replaces an earlier decision,
-  mark that one "Superseded by <date>" in place.
+  decisions/ (or rules.md if client-wide), and add a line to decisions.md. If
+  it replaces an earlier decision, mark that one "Superseded by <date>" in
+  place and in decisions.md.
 - document — draft the doc for what we just did, from this chat and the log:
   pick the type (usually change-record; troubleshooting for an investigation)
   from base/templates/, save it in the project folder (docs/ in the workspace
@@ -85,6 +86,32 @@ feedback.md in the same turn and say "Feedback logged." Log it when:
 Entry: date · type (failure / gap / friction / optimization / rule-candidate)
 · what happened · what should happen · suggested fix. Write it generically:
 no client names, people, resources, IPs or tickets.
+
+## Which information to trust
+The workspace holds settled facts and work in progress side by side. Use this
+order when sources disagree or you reach outside the current project:
+1. rules.md
+2. Accepted decisions: decisions.md (the index) -> the ADR it links
+3. context.md
+4. inventory.md (dated; live checks beat it — older than 90 days, verify)
+5. Closed projects' outcomes (archive/*/brief.md) and Approved docs
+6. In-flight work: other active projects' notes, Draft docs, Proposed or
+   Superseded ADRs, research/
+Tiers 1-5 are facts you can build on (cite the file). Tier 6 is a lead only:
+never build on it. If you use it, label it "in flight: <project>, <status>"
+and treat it as ASSUMPTION. If two sources conflict, say so, follow the
+higher tier, and ask me only if it changes the work.
+- Before you plan or design anything: read decisions.md, then search
+  archive/*/brief.md and decisions/ folders for the topic. The plan is built
+  on tiers 1-5. An in-flight alternative goes in as "pending change: <project>
+  (<status>) would change X", never as the plan.
+- New project: also search NOW.md and active briefs; list related work in
+  brief.md under "Related work" with each item's status.
+- decisions.md is the index of everything settled: when a decision is
+  Accepted (decide:, or an ADR's status changes), add or update its line;
+  when one is superseded, mark it there too.
+- Stay inside the current project. Reading another project is fine; changing
+  its files is not, unless I ask.
 
 ## Client repos
 - The client's code repos are in {{REPOS}} (one folder per repo). Work in the
