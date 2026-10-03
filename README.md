@@ -42,9 +42,16 @@ Requires Node 18+ and git.
 - `tools/check.mjs` — consistency check; CI runs it on pushes to main and PRs.
 
 ## Changing the team
-Edit `agents/` or `base/`, run `node tools/check.mjs`, record it in
-CHANGELOG.md, then run `node tools/workspace.mjs update <workspace>` for each
-workspace. Updates rewrite generated files only, never your notes.
+Edit `agents/` or `base/` HERE (never on a client laptop), run
+`node tools/check.mjs`, record it in CHANGELOG.md, merge to main.
+
+On each client laptop: `node tools/workspace.mjs upgrade`. It pulls main and
+updates every workspace on that machine (generated files only, never your
+notes). Then start new chats.
+
+The rulebook stays portable: on client laptops it is read-only. Claude Code is
+denied edits to it, VS Code marks it read-only, and `upgrade` refuses to run if
+it has local changes or commits (it shows them and how to drop them).
 
 ## Client code repos
 Clone them into the workspace's `repos/`, or point the workspace at the folder
@@ -61,7 +68,7 @@ the inventory keeps one line per repo as the team learns them.
    `inbox/` (gitignored, never committed).
 3. Here, open an agent and say "process the inbox". It follows MAINTAINING.md:
    proposes changes, applies the ones you approve, bumps CHANGELOG.md.
-4. Pull the new version at the client and run `workspace.mjs update`.
+4. At the client: `node tools/workspace.mjs upgrade`.
 
 ## Client data
 - Workspaces live outside this repo; the setup script refuses to create one

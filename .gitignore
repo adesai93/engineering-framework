@@ -5,3 +5,4 @@
 *.local.md
 .engineering-framework.json
 inbox/
+.workspaces.local.json

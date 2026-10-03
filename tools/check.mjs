@@ -225,7 +225,8 @@ function checkTemplates(ctx) {
 // f. Client data never committed: workspaces live outside this repo; these paths are the
 // tell-tales of one copied in by mistake.
 const isLocalOnly = (f) => f.startsWith('clients/') || f.startsWith('projects/')
-  || f.endsWith('.local.md') || f.endsWith('.engineering-framework.json');
+  || f.endsWith('.local.md') || f.endsWith('.engineering-framework.json')
+  || f.endsWith('.workspaces.local.json');
 function checkNoClientData(ctx) {
   if (!ctx.viaGit) ctx.notes.push(`git unavailable: file list from a tree walk${process.env.CI ? '' : ' that skips local-only layers'}`);
   return ctx.files.filter(isLocalOnly)
