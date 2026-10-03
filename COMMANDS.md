@@ -6,7 +6,7 @@
 | Get the rulebook | `git clone https://github.com/adesai93/engineering-framework.git ~/engineering-framework` |
 | New client workspace | `node tools/workspace.mjs new client-a ~/work/client-a --tools copilot` |
 | Both tools | `--tools claude,copilot` (default) |
-| Get the latest rulebook (weekly) | `node tools/workspace.mjs upgrade` (pulls main + updates every workspace here) |
+| Get the latest rulebook (weekly) | `git -C ~/engineering-framework pull`, or tell the agent "update the team" (UPDATING.md) |
 | Update one workspace | `node tools/workspace.mjs update ~/work/client-a` |
 | Check the rulebook | `node tools/check.mjs` |
 | Clone a client code repo | `git clone <url> ~/work/client-a/repos/<name>` |

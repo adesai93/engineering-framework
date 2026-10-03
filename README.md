@@ -45,9 +45,9 @@ Requires Node 18+ and git.
 Edit `agents/` or `base/` HERE (never on a client laptop), run
 `node tools/check.mjs`, record it in CHANGELOG.md, merge to main.
 
-On each client laptop: `node tools/workspace.mjs upgrade`. It pulls main and
-updates every workspace on that machine (generated files only, never your
-notes). Then start new chats.
+On each client laptop: `git pull` in the rulebook (or tell the agent "update
+the team"). A git hook refreshes every workspace on that machine (generated
+files only, never your notes). Then start new chats. See UPDATING.md.
 
 The rulebook stays portable: on client laptops it is read-only. Claude Code is
 denied edits to it, VS Code marks it read-only, and `upgrade` refuses to run if
@@ -68,7 +68,7 @@ the inventory keeps one line per repo as the team learns them.
    `inbox/` (gitignored, never committed).
 3. Here, open an agent and say "process the inbox". It follows MAINTAINING.md:
    proposes changes, applies the ones you approve, bumps CHANGELOG.md.
-4. At the client: `node tools/workspace.mjs upgrade`.
+4. At the client: `git pull` the rulebook, or say "update the team".
 
 ## Client data
 - Workspaces live outside this repo; the setup script refuses to create one

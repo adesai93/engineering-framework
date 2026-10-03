@@ -123,6 +123,7 @@ function install(ws, cfg) {
   if (cfg.tools.includes('claude')) { writeClaudeSettings(ws, cfg.framework, cfg.repos); console.log('  wrote .claude/settings.json'); }
   writeFileSync(join(ws, CONFIG), JSON.stringify({ ...cfg, version: frameworkVersion() }, null, 2) + '\n');
   remember(ws);
+  installPullHook();
 }
 
 // This machine's workspaces, so `upgrade` can update them all. Local only
@@ -164,17 +165,40 @@ function cmdUpgrade() {
     console.error('  git -C <rulebook> reset --hard @{u}');
     process.exit(1);
   }
-  try { execFileSync('git', ['pull', '--ff-only', '-q'], { cwd: ROOT, stdio: 'inherit' }); } catch {
+  try {
+    execFileSync('git', ['pull', '--ff-only', '-q'], { cwd: ROOT, stdio: 'inherit', env: { ...process.env, ENGFW_NO_HOOK: '1' } });
+  } catch {
     die('git pull --ff-only failed (local commits or no network). The rulebook must match main: check `git -C <rulebook> log origin/main..`');
   }
   console.log(`Rulebook: v${before} -> v${frameworkVersion()}`);
+  cmdRefresh();
+}
+
+// Regenerate every workspace on this machine from the current rulebook (no pull).
+// Runs automatically after `git pull` via the post-merge hook.
+function cmdRefresh() {
+  const drift = (() => { try { return gitOut(ROOT, ['status', '--porcelain']); } catch { return ''; } })();
+  if (drift) console.log('WARNING: the rulebook has local changes; it should match main (see UPDATING.md).');
   const list = known();
   if (!list.length) console.log('No workspaces registered on this machine yet (run `new`, or `update <path>` once).');
   for (const ws of list) {
     if (!existsSync(join(ws, CONFIG))) { console.log(`  skipped ${ws} (no longer a workspace)`); continue; }
     execFileSync(process.execPath, [fileURLToPath(import.meta.url), 'update', ws], { stdio: 'inherit' });
   }
-  console.log('\nDone. Start new chats so agents load the new rules.');
+  console.log(`\nWorkspaces on v${frameworkVersion()}. Start new chats so agents load the new rules.`);
+}
+
+// Make a plain `git pull` enough: a post-merge hook in the rulebook runs
+// `refresh`, and pulls are fast-forward only so local commits can't merge in.
+const HOOK_MARK = '# engineering-framework: refresh workspaces after git pull';
+function installPullHook() {
+  let hooks;
+  try { hooks = resolve(ROOT, gitOut(ROOT, ['rev-parse', '--git-path', 'hooks'])); } catch { return; } // not a git clone
+  const p = join(hooks, 'post-merge');
+  if (existsSync(p) && !read(p).includes(HOOK_MARK)) return; // someone else's hook: leave it
+  mkdirSync(hooks, { recursive: true });
+  writeFileSync(p, `#!/bin/sh\n${HOOK_MARK}\n[ -n "$ENGFW_NO_HOOK" ] && exit 0\nnode "$(git rev-parse --show-toplevel)/tools/workspace.mjs" refresh\n`, { mode: 0o755 });
+  try { execFileSync('git', ['config', 'pull.ff', 'only'], { cwd: ROOT, stdio: 'ignore' }); } catch { /* best effort */ }
 }
 
 function git(ws, args) {
@@ -226,7 +250,7 @@ function cmdUpdate(path, repos) {
 }
 
 function usage() {
-  console.error('usage:\n  node tools/workspace.mjs new <client> <path> [--tools claude,copilot] [--repos <dir>]\n  node tools/workspace.mjs update <path> [--repos <dir>]\n  node tools/workspace.mjs upgrade   (pull latest rulebook + update every workspace on this machine)');
+  console.error('usage:\n  node tools/workspace.mjs new <client> <path> [--tools claude,copilot] [--repos <dir>]\n  node tools/workspace.mjs update <path> [--repos <dir>]\n  node tools/workspace.mjs upgrade   (checked pull of the rulebook + refresh)\n  node tools/workspace.mjs refresh   (regenerate every workspace on this machine; runs after git pull)');
   process.exit(2);
 }
 function die(msg) { console.error(`error: ${msg}`); process.exit(1); }
@@ -246,5 +270,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   if (cmd === 'new') cmdNew(rest[0], rest[1], tools, repos);
   else if (cmd === 'update') cmdUpdate(rest[0], repos);
   else if (cmd === 'upgrade') cmdUpgrade();
+  else if (cmd === 'refresh') cmdRefresh();
   else usage();
 }
