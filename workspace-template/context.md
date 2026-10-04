@@ -1,6 +1,6 @@
 # <CLIENT> — Context
 
-One page. Facts the team needs on every task for this client. Dated where it
+Up to ~120 lines (read every chat). Facts the team needs on most tasks for this client. Dated where it
 matters. No secrets: say where they live, not what they are.
 
 ## Stack

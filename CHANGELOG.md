@@ -5,6 +5,12 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.10.3] - 2026-10-04
+### Changed
+- Bigger limits for the files read every chat, so busy clients do not need
+  constant tidying: context.md ~120 lines (was ~60), NOW.md ~100, rules.md
+  ~80. doctor and the tidy offer use the same limits.
+
 ## [0.10.2] - 2026-10-04
 ### Added
 - context.md overflow rule: tidy keeps the every-task essentials and moves

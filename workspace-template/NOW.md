@@ -1,6 +1,6 @@
 # <CLIENT> — Now
 
-One line per item. Keep to 1 page; the lead trims it when parking.
+One line per item. Up to ~100 lines; "tidy" moves finished items out.
 
 ## Active
 <!-- project-name — status — next step — blocker (if any) -->

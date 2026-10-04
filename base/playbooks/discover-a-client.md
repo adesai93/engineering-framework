@@ -19,7 +19,7 @@
 7. Verify: every finding cites a doc and a live check, or is marked
    ASSUMPTION; nothing is reported as fact from live data alone when their
    docs weren't read.
-8. Save: summary to context.md (1 page), resources to inventory.md, their
+8. Save: summary to context.md (within its ~120-line limit), resources to inventory.md, their
    accepted decisions to decisions.md, the full write-up to
    research/discovery-<date>.md.
 9. GATE — document: architecture-doc ("as-is") from the write-up; link the

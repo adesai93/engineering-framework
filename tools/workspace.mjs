@@ -389,11 +389,12 @@ function cmdDoctor(path) {
   if (known().includes(slash(ws))) ok('Workspace registered (git pull refreshes it)');
   else fix('Workspace not registered on this machine: run `update` on it once.');
   for (const r of asList(cfg.repos)) (existsSync(r) ? ok : fix)(`Repos folder ${r}${existsSync(r) ? '' : ' is missing: fix with update --repos <folder>'}`);
-  for (const f of ['context.md', 'rules.md', 'NOW.md']) {
+  // Files read every chat have line limits (keep in step with agents/team.md).
+  for (const [f, max] of [['context.md', 120], ['NOW.md', 100], ['rules.md', 80]]) {
     const fp = join(ws, f);
     if (!existsSync(fp)) { fix(`${f} missing: run update`); continue; }
     const n = read(fp).split('\n').length;
-    if (n > 80) fix(`${f} is ${n} lines (limit ~60): say "tidy" in a chat.`);
+    if (n > max) fix(`${f} is ${n} lines (limit ~${max}): say "tidy" in a chat.`);
   }
 }
 
