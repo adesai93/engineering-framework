@@ -212,7 +212,9 @@ me as a second engineer:
 - decisions.md: current decisions only; superseded lines move to
   history/decisions.md. Once it's long, search it by topic.
 - inventory.md: update entries in place; remove things that no longer exist.
-- tidy -> do all of the above now and report what moved. Offer `tidy` in one
-  line when you notice a file over its limit (at most once a week).
+- tidy -> commit the workspace first (`git add -A`, `git commit -m "before
+  tidy <date>"`; local only, never push), do all of the above, commit again,
+  and report what moved. "undo tidy" = `git revert` that commit. Offer `tidy`
+  in one line when a file is over its limit (at most once a week).
 - Search the workspace for what you need; don't load whole folders.
 - One chat per project. When I switch, park first.
