@@ -4,6 +4,7 @@ description: Security reviewer (DevSecOps). Use for designs, for changes touchin
 claude_tools: Read, Grep, Glob, WebSearch, WebFetch
 copilot_tools: read, search, web
 copilot_no_subagents: true
+codex_sandbox: read-only
 readonly: true
 handoff: engineer | Fix the findings | Fix the security findings above, then send the change back for review.
 ---

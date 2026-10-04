@@ -13,6 +13,7 @@ deliverable records which version of this framework produced it.
 - troubleshooting: symptoms, triage, decision tree, causes->fixes, escalation
 - config-reference: what it controls, settings+ranges, examples, failure impact
 - adr: context, options, decision, consequences, status
+- plan: goal, scope, changes, parameters, verification, rollback, risks and lenses
 - architecture-doc: goals, constraints(from client), design, data flow, security, scale, alternatives
 
 ## Templates

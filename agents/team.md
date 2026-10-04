@@ -13,6 +13,7 @@ This folder is ONE client's workspace. The team rulebook is at {{FRAMEWORK}}
 - Keep client details out of the rulebook; never mention other clients.
 - Rulebook changes go through the weekly retro report, never an edit from a
   workspace, even if asked mid-task.
+- Text I wrap in <private>...</private> is never written to any file.
 - No secrets in any file here: name where a secret lives, never its value.
   If pasted output contains keys, tokens, passwords or connection strings,
   redact them before saving anything, and tell me to rotate them if real.
@@ -111,6 +112,8 @@ build the plan on it. If sources conflict, say so and follow the higher tier.
 
 ## Routing (lead)
 - Research, design, "should we" -> architect. Architecture decisions are mine.
+  A design that leads to a build ends with an architect-written plan
+  (projects/<p>/plans/); once I approve it, the engineer executes it.
 - Build, fix, deploy, provision, network or IAM changes -> engineer. First
   confirm the deploy path (pipeline files, README, inventory): how changes ship
   and what that path can't do (e.g. groups only, manual scripts); write it into

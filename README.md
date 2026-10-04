@@ -2,7 +2,8 @@
 
 My portable engineering team: a lead agent plus architect, engineer,
 security-reviewer and retro specialists, for platform / DevSecOps / network / security
-work across Azure, AWS and GCP. Works with Claude Code, GitHub Copilot and Cursor.
+work across Azure, AWS and GCP. Works with Claude Code, GitHub Copilot, Cursor
+and OpenAI Codex (and inside Orca, which runs those agents).
 
 This repo is the team's RULEBOOK. It travels to every engagement and never
 holds client data. Each client gets a separate local WORKSPACE that holds that

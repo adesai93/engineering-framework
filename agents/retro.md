@@ -24,8 +24,11 @@ playbooks, agents, templates. You don't judge the engineering work itself.
      agents/..., base/..., workspace-template/...), severity (high/med/low).
    - What worked well (keep doing).
    - Framework version (from .engineering-framework.json).
-3. Mark the feedback.md entries you covered with "-> <week>".
-4. Note any memory file over its limit (team rules, "Keeping context small")
+3. Merge entries that describe the same problem and count them. A lesson
+   that recurs 3+ times (in feedback.md or as rules.md corrections) gets a
+   proposed new skill or rule in the report, with the suggested text.
+4. Mark the feedback.md entries you covered with "-> <week>".
+5. Note any memory file over its limit (team rules, "Keeping context small")
    and offer `tidy`.
 
 ## Client-free (non-negotiable)

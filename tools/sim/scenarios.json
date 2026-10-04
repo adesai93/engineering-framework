@@ -195,6 +195,40 @@
           "regex": "wiz"
         }
       ]
+    },
+    {
+      "id": "plan-then-build",
+      "prompts": [
+        "Design how payments gets a new spoke in East US 2, and write it up so it can be built."
+      ],
+      "checks": [
+        {
+          "type": "glob-exists",
+          "dir": "projects",
+          "regex": "plans/.+.md$"
+        },
+        {
+          "type": "reply-matches",
+          "regex": "(plan|approve)"
+        }
+      ]
+    },
+    {
+      "id": "close-folds-back",
+      "prompts": [
+        "close wiz-rollout: all 4 subs are connected now, sub-connectivity done 2026-10-04, decided to keep Wiz PR scans blocking only Critical."
+      ],
+      "checks": [
+        {
+          "type": "file-matches",
+          "file": "decisions.md",
+          "regex": "(Wiz|wiz)"
+        },
+        {
+          "type": "dir-exists",
+          "path": "archive/wiz-rollout"
+        }
+      ]
     }
   ]
 }
