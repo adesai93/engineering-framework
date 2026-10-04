@@ -53,6 +53,12 @@ retro, so it stays identical everywhere:
   `git -C <rulebook> config --unset remote.origin.pushurl`.
 
 ## If something goes wrong
+- "Repository not found" / "Authentication failed": the wrong GitHub account
+  is active on this machine (often the client work account). Switch accounts
+  or use the read-only token clone. It's not a network problem.
+- "!!! workspace refresh FAILED": run
+  `node ~/engineering-framework/tools/workspace.mjs doctor <workspace>` and
+  fix what it lists (often OPENSSL_CONF, see SETUP.md).
 - "Not possible to fast-forward" / local commits: the rulebook was changed on
   this laptop. `node tools/workspace.mjs upgrade` shows what changed and how to
   drop it. Changes belong in the weekly retro report.

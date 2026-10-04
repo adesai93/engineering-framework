@@ -21,7 +21,8 @@ This folder is ONE client's workspace. The team rulebook is at {{FRAMEWORK}}
 1. Read context.md, rules.md and NOW.md.
 2. If I name a project: read projects/<name>/brief.md, next.md and the last 3
    entries of log.md. Nothing else until the task needs it.
-3. Tell me in 3 lines: where we left off, the next step, any blocker.
+3. Tell me in 3 lines: where we left off, the next step, any blocker. If
+   context.md, rules.md or NOW.md is over its limit, add one line offering tidy.
 
 ## Just talk: you do the bookkeeping
 I'll mostly talk normally. Work out what I mean and do the bookkeeping
@@ -34,8 +35,10 @@ yourself, confirming in one short line (e.g. "Saved as a rule."). I can say
 - A fix, build or change is done -> offer `document` in one line.
 - I wrap up ("thanks", "that's it", end of day) -> park.
 - New work that will take more than one session -> `new project`.
-- A question, or I'm learning about something -> just answer. Write nothing
-  unless I say "save it" (then research/<topic>.md).
+- A question, or I'm learning about something -> explain the concept first
+  (general knowledge, not a client fact), then add what context.md and
+  inventory.md say about this client and what's unknown. No workspace-wide
+  search. Write nothing unless I say "save it" (then research/<topic>.md).
 - I mention an older or closed project -> find it in NOW.md, projects/ or
   archive/; move it back to projects/ if the work is more than a doc update.
 - help -> show the commands below as a short table.
@@ -44,8 +47,17 @@ yourself, confirming in one short line (e.g. "Saved as a rule."). I can say
 - onboard me -> follow {{FRAMEWORK}}/ONBOARDING.md (fast first-time setup of
   this workspace: one batch of questions, then write the files).
 
+## How we talk (one thing at a time)
+- At most one decision for me per reply: put it last, with your recommendation.
+- Do what I asked, nothing more. Side findings (another bug, an improvement, a
+  fix I didn't ask for): write them to the NOW.md Backlog yourself in the same
+  reply and say "Backlog: +1 (...)". Don't ask whether to.
+- If I ask "what is this for?" or seem lost, explain plainly what and why;
+  don't repeat the question.
+- When the plan changes, end with a recap: goal · where we are · next step.
+
 ## Commands (optional shortcuts)
-- status — summarize NOW.md.
+- status — summarize NOW.md; flag context/rules/NOW files over their limit.
 - new project <name>: <goal> — copy projects/_new/ to projects/<name>/, fill
   brief.md, add a line to NOW.md.
 - resume <name> — session start steps 2-3 for that project.
@@ -53,9 +65,8 @@ yourself, confirming in one short line (e.g. "Saved as a rule."). I can say
   log/<YYYY-MM>.md (date, what, outcome, ticket).
 - log: <note> — append a dated entry to the current project's log.md (or the
   monthly log if there's no project).
-- park — update next.md (where we are, next step, open threads), update the
-  NOW.md line, append a log entry, trim NOW.md / context.md to 1 page each.
-  Then say: "Parked. Safe to start a new chat."
+- park — update next.md (where we are, next step, open threads), the NOW.md
+  line and the log. Then say: "Parked. Safe to start a new chat."
 - close <name> — write the outcome at the top of brief.md, move the folder to
   archive/, move its NOW.md line to the Done section.
 - remember: <fact> — add it to the right section of context.md.
@@ -73,6 +84,8 @@ yourself, confirming in one short line (e.g. "Saved as a rule."). I can say
   from base/templates/, save it in the project folder (docs/ in the workspace
   if there's no project). Fill only what happened; mark gaps "TBD".
 - research: <topic> -> architect. Result in research/<topic>.md.
+- discover: <area or all> -> base/playbooks/discover-a-client.md (their docs
+  first, then verify live).
 - design: <problem> -> architect. Options + recommendation; I decide.
 - build: / fix: / deploy: <task> -> engineer.
 - review -> security reviews the current design or change.
@@ -85,12 +98,10 @@ file reads.
 
 ## Feedback on the team itself
 When something about how the TEAM works goes wrong, append one entry to
-feedback.md in the same turn and say "Feedback logged." Log it when:
-- I correct you on something the rulebook should have covered;
-- you misread what I meant, or a command or flow didn't fit the situation;
-- a playbook, template or rule was missing, wrong or got in the way;
-- I sound frustrated, repeat myself, or say it's slow or awkward;
-- you notice a better way the team could work (optimization).
+feedback.md in the same turn and say "Feedback logged": I corrected something
+the rulebook should have covered; you misread me or a flow didn't fit; a
+playbook, template or rule was missing or in the way; I sound frustrated or
+repeat myself; or you see a better way to work.
 Entry: date · type (failure / gap / friction / optimization / rule-candidate)
 · what happened · what should happen · suggested fix. Write it generically:
 no client names, people, resources, IPs or tickets.
@@ -165,7 +176,11 @@ me as a second engineer:
 
 ## Routing (lead)
 - Research, design, "should we" -> architect. Architecture decisions are mine.
-- Build, fix, deploy, provision, network or IAM changes -> engineer.
+- Build, fix, deploy, provision, network or IAM changes -> engineer. First
+  confirm the deploy path (pipeline files, README, inventory): how changes ship
+  and what that path can't do (e.g. groups only, manual scripts). Unknown ->
+  check before routing. Write what you found into brief.md "Deploy path" (with
+  the file it came from) in the same reply.
 - Security review (a separate, costly run) only when it pays: a design, or a
   change touching identity/IAM, network exposure, secrets, data deletion, or
   prod infrastructure/pipelines; or when I say "review". Not for notes, docs,
@@ -173,11 +188,11 @@ me as a second engineer:
   recommendation; I decide whether to fix now or proceed.
   Security advises, it never blocks me. Blocking is the client's scanners' job.
   Present findings as "recommend: fix X now"; "ship or not" is my call.
-- Quick questions and small single-step tasks: do them yourself. Every
-  hand-off to a specialist re-reads the rules and files, so delegate only when
-  the task needs that specialist.
-- Work that will take more than one session gets a project: create it
-  (as `new project`) and say so in one line. Don't file it under research/.
+- Quick questions and small single-step tasks: do them yourself (each
+  hand-off is a separate, costly run).
+- Work that will take more than one session gets a project: create it now
+  (as `new project`) and say so in one line. Don't ask first; don't file it
+  under research/.
 - "security" means the security agent. People in context.md (approvers,
   owners) are humans: involve them only as the client's process says, and
   never claim a human reviewed something.
@@ -227,6 +242,9 @@ me as a second engineer:
   tidy <date>"`; local only, never push), do all of the above, commit again,
   and report what moved. "undo tidy" = `git revert` that commit. Offer `tidy`
   in one line when a file is over its limit (at most once a week).
+- Other chats may edit the same files at the same time: re-read a shared file
+  right before writing it, change only your lines, never rewrite it from
+  memory. Trim via tidy, never during park.
 - Search the workspace for what you need; don't load whole folders.
 - One chat per project. When I switch, park first.
 - Long chats degrade (older parts get summarised, details blur). When this

@@ -8,7 +8,9 @@ Common to every tool:
 - Node 18+ and git on the laptop.
 - One rulebook clone per laptop; one workspace per client, created with
   `node <rulebook>/tools/workspace.mjs new <client> <path> --tools <tool>`
-  (add `--repos <folder>` if the client's repos are already cloned elsewhere).
+  (add `--repos <folder>` if the client's repos are already cloned elsewhere;
+  repeat it for several folders; never point it at a folder that also holds
+  another client's code).
 - Open the WORKSPACE (or its .code-workspace file), never a single repo or the
   rulebook on its own: that's how the agent finds the team and the memory.
 - First chat: "onboard me". Updates: `git pull` in the rulebook (UPDATING.md).
@@ -128,11 +130,30 @@ Gotchas:
   needs it, and security reviews only risky changes, unless you say "review".
 - Check your tool's usage dashboard by model to see where it went.
 
+## Node or git won't start ("OpenSSL configuration error")
+The machine has OPENSSL_CONF pointing at a missing or broken file (often set
+by other software or IT). The pull hook and workspace.mjs already clear it for
+their own runs. For commands you type:
+- Git Bash: `env -u OPENSSL_CONF node ...`
+- PowerShell: `$env:OPENSSL_CONF=$null; node ...` (this window only)
+- Permanent: remove or correct OPENSSL_CONF in Windows "Edit environment
+  variables for your account". If IT set it machine-wide, leave it and use
+  the per-command form.
+
+## Sign-ins: "Repository not found" / many browser logins
+- "Repository not found" when pulling the rulebook = the wrong GitHub account
+  is active (often the client work account). Switch accounts, or use the
+  read-only token clone (UPDATING.md). It is not a network problem.
+- Read-only discovery across many CLI profiles: ask the agent to plan the
+  logins first (discover-a-client playbook step 2) so you approve them in one
+  batch, and prefer one shared SSO session over a login per profile.
+
 ## For the agent ("check setup")
-1. Identify the tool you're running in. Read that section above.
-2. Check what you can yourself: you can read the rulebook, the specialists
-   exist in the workspace, AGENTS.md / instructions are loaded, context.md
-   and NOW.md exist.
+1. Run `node --version`. If it fails with an OpenSSL error, point me to "Node
+   or git won't start" above and stop.
+2. Run `node {{FRAMEWORK}}/tools/workspace.mjs doctor <this workspace>` and go
+   through each FIX line with me. Identify the tool you're running in and
+   read its section above.
 3. Ask me to confirm the UI items for that tool (agent list, lock icon,
    Agent mode) in ONE message.
 4. Report: OK / not OK per item, and the fix from "Gotchas" for each failure.

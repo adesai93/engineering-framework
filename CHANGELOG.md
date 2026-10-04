@@ -5,6 +5,36 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.10.0] - 2026-10-04
+First real-use feedback round (12 items from 4 hours at a client).
+### Added
+- `workspace.mjs doctor [<workspace>]`: one-screen OK/FIX health check;
+  "check setup" runs it.
+- `--repos` is repeatable (several folders or single repo folders).
+- discover-a-client playbook: plan logins up front (one batch, shared SSO),
+  read the client's docs first, then verify live; differences are questions
+  until checked against their plans.
+- How we talk: one decision per reply, side findings to a Backlog, explain
+  when I'm lost, recap when the plan changes.
+- Deploy path: confirmed before a build is routed; recorded in the brief.
+- Onboarding detects the wrong window and says how to open the workspace;
+  skims a reachable ticket tracker before asking.
+### Changed
+- Workspaces are only generated from the released rulebook: `new`/`update`
+  refuse on uncommitted edits, local commits or missed updates (maintainer
+  machine warns only); the workspace records the rulebook commit.
+- Node runs with OPENSSL_CONF cleared in the pull hook and tool; a failed
+  refresh after `git pull` is reported loudly.
+- Git errors explained: "Repository not found" = wrong GitHub account, not
+  network.
+- Concurrent chats: re-read shared files before writing, edit only your
+  lines; trimming moves out of park (tidy / session start offer).
+- Learning questions: explain the concept first, then what's known/unknown
+  about this client (context + inventory only, no workspace-wide search).
+- Multi-session work: the project is created straight away, not asked about.
+- Retro reports: no personal names at all (also names only seen in chat);
+  self-check scans capitalized words, emails and handles.
+
 ## [0.9.0] - 2026-10-04
 ### Changed
 - Lower model usage: security reviews only designs and risky changes
