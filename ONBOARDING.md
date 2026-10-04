@@ -30,7 +30,7 @@ questions, skipping any context.md already answers. Say "don't know" is fine.
 
 ## Reply 2: write it down and finish
 In one pass, with no further questions:
-- context.md: answers 1-10, one page, dated; gaps as "(unknown)".
+- context.md: answers 1-10, within ~120 lines, dated; gaps as "(unknown)".
 - NOW.md: one line per item from answer 11. A project folder (brief.md +
   next.md) only for items I described as multi-day.
 - rules.md: anything I said as a must ("always", "never").

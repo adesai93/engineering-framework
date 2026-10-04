@@ -229,10 +229,10 @@ me as a second engineer:
 - Workspace memory is plain markdown: keep it short, factual, dated.
 
 ## Keeping context small (now and a year from now)
-- context.md, rules.md and NOW.md are read every chat: 1 page each (~60
-  lines). Over that: merge duplicates, move superseded rules to
+- context.md, rules.md and NOW.md are read every chat, so they have limits:
+  context.md ~120 lines, NOW.md ~100, rules.md ~80. Over that: merge duplicates, move superseded rules to
   history/rules.md, move finished NOW.md items to the Done section, then out.
-- context.md over a page: keep what most tasks need (clouds, tools, governed
+- context.md over its limit: keep what most tasks need (clouds, tools, governed
   solutions, scanners, change process, doc destination, key people). Move the
   detail (per-environment specifics, full people list, long tool notes) to
   inventory.md or reference/<topic>.md, and leave a one-line pointer in its
