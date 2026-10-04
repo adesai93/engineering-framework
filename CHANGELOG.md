@@ -5,6 +5,31 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.11.0] - 2026-10-04
+Optimised against Anthropic, GitHub Copilot / VS Code and Cursor docs.
+### Added
+- Skills (skills/ -> .claude/skills/, read by Claude Code, Copilot and
+  Cursor): firefight, project-lifecycle, tidy, document, log-feedback, and
+  user-only onboard, update-team, check-setup. Loaded on demand.
+- `workspace.mjs backup` (git bundle to a client-approved folder) and
+  `forget`; doctor checks backup age and scans notes for secrets.
+- offboard-a-client playbook (hand over, final retro, backup, then delete).
+- `tools/simulate.mjs`: behaviour regression suite on a fictional client.
+- CI: nothing agent tools auto-load may live in the rulebook root; skills
+  validated; team rules budget lowered to keep the saving.
+### Changed
+- Team rules cut from ~3.9k to ~2.3k tokens (paid by every chat AND every
+  specialist run); procedures moved to skills.
+- Security review gating now matches in every place (the agent's description
+  said "every change", which caused extra runs).
+- Claude Code: engineer and retro on sonnet; CLAUDE.md imports context.md and
+  rules.md (loaded at start, survive /compact); compaction guidance.
+- Copilot: security/architect get tool allowlists (truly read-only) and can't
+  start further agents; retro runs only when asked; CLAUDE.md not double-loaded.
+- park commits the workspace locally; long-chat nudge also after a 1h+ break.
+- SETUP.md: skills, backups, model pinning per tool, Copilot policy
+  diagnostics, Cursor Max mode, Claude /usage and /doctor prompt-audit.
+
 ## [0.10.3] - 2026-10-04
 ### Changed
 - Bigger limits for the files read every chat, so busy clients do not need

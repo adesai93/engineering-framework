@@ -19,6 +19,20 @@ Common to every tool:
 
 ---
 
+## Skills (all tools)
+Long procedures (firefight, project lifecycle, tidy, document, log-feedback,
+onboard, update-team, check-setup) are skills in `.claude/skills/`, which
+Claude Code, Copilot in VS Code and Cursor all read. Only their names and
+one-line descriptions sit in context until one is needed; the always-loaded
+team rules stay small (~2.3k tokens). The last three run only when you ask.
+
+## Backups
+Each workspace is the only copy of that client's memory. Once per client:
+`node <rulebook>/tools/workspace.mjs backup <workspace> --to <client-approved folder>`
+(e.g. the client's OneDrive/SharePoint or an encrypted drive); after that just
+`backup <workspace>` (or tell the agent "back up"). doctor warns after 7 days
+and flags secrets found in the notes.
+
 ## Claude Code  (`--tools claude`)
 
 What gets generated in the workspace:
@@ -34,7 +48,7 @@ Set up:
    additionalDirectories setting only applies after the folder is trusted.
 
 Check it works:
-- `/agents` lists architect, engineer, security, retro.
+- `/agents` lists architect, engineer, security, retro; `/skills` lists the skills.
 - `/memory` shows CLAUDE.md / AGENTS.md loaded.
 - Say "status": it summarises NOW.md without asking where things are.
 
@@ -45,6 +59,9 @@ Gotchas:
   settings"). Rulebook changes go through the weekly retro.
 - Organisation-managed settings can override project settings; if a deny or
   directory rule seems ignored, check with the client's admin.
+- Models: engineer and retro run on `sonnet` (cheaper); architect and security
+  use your chat's model. `/usage` shows what used your plan (by subagent and
+  skill); `/doctor prompt-audit` checks the instruction files for conflicts.
 
 ---
 
@@ -82,6 +99,15 @@ Gotchas:
 - Copilot doesn't call specialists for you: pick the agent from the
   dropdown, or use the handoff buttons at the end of a response.
 - Pick a capable model in the model menu; small models skip the bookkeeping.
+- Cheaper specialists (optional): Copilot model names change, so they aren't
+  pinned for you. To pin one, add `model: ['<cheaper model>', '<fallback>']`
+  to that agent in the RULEBOOK's agents/ (via the weekly retro), using names
+  from your model picker; the first available one is used.
+- Security and architect are read-only in Copilot (tool list), can't start
+  further agents, and retro only runs when you ask.
+- Something not loading? "Developer: Policy Diagnostics" shows org policies
+  in effect (agent mode, MCP, models); the Chat Debug view shows which
+  instructions, agents and skills actually loaded.
 
 ---
 
@@ -112,6 +138,8 @@ Gotchas:
   other configs" is on. Harmless (.cursor wins); use one tool per client or
   turn that toggle off.
 - Check the model in the chat panel; the default may not be the one you want.
+  Leave Max mode off: standard context is enough for this setup and Max mode
+  costs more. Subagents run on your chat's model ("inherit").
 - .cursor/cli.json protects the rulebook for the Cursor CLI; in the editor
   the protection is the read-only folder plus the team rule, and `git pull`
   refuses if the rulebook was changed locally.
