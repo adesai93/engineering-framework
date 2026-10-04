@@ -5,7 +5,8 @@
 |---|---|
 | Get the rulebook | `git clone https://github.com/adesai93/engineering-framework.git ~/engineering-framework` |
 | New client workspace | `node tools/workspace.mjs new client-a ~/work/client-a --tools copilot` |
-| Pick tools | `--tools claude`, `copilot`, `cursor`, or a comma list (default `claude,copilot`) |
+| Pick tools | `--tools claude`, `copilot`, `cursor`, `codex`, or a comma list (default `claude,copilot`) |
+| Pick toolchain skills | `--toolchains terraform,bicep-arm,powershell,azure-cli,aws-cli,kql,pipelines-yaml` (default: all) |
 | Get the latest rulebook (weekly) | `git -C ~/engineering-framework pull`, or tell the agent "update the team" (UPDATING.md) |
 | Update one workspace | `node tools/workspace.mjs update ~/work/client-a` |
 | Check the rulebook | `node tools/check.mjs` |

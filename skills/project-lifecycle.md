@@ -17,7 +17,10 @@ description: Start, resume, park, close or log work. Use for "new project", "res
   run from the workspace folder (it's pre-approved; it never pushes):
   {{SNAPSHOT}} "park <project> <date>"
   Say "Parked. Safe to start a new chat." and the line to type: `resume <name>`.
-- close <name> — outcome at the top of brief.md, move the folder to archive/,
-  move its NOW.md line to Done.
+- close <name> — first fold what's settled back into the shared memory:
+  accepted decisions -> decisions.md, durable environment facts ->
+  inventory.md, standing client facts -> context.md (or reference/), plans ->
+  status Done. Then write the outcome at the top of brief.md, move the folder
+  to archive/, move its NOW.md line to Done, and snapshot.
 - Big projects: one folder with a workstream list in brief.md; split a
   workstream out only when it gets its own timeline.

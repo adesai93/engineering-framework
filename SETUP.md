@@ -19,6 +19,13 @@ Common to every tool:
 
 ---
 
+## Toolchain skills (pick per client)
+Thin skills for verifying work safely in each toolchain: terraform,
+bicep-arm, powershell, azure-cli, aws-cli, kql, pipelines-yaml. All are
+included by default; to include only what a client uses:
+`node <rulebook>/tools/workspace.mjs update <workspace> --toolchains bicep-arm,azure-cli,kql,pipelines-yaml`
+(remembered for later updates).
+
 ## Skills (all tools)
 Long procedures (firefight, project lifecycle, tidy, document, log-feedback,
 onboard, update-team, check-setup) are skills in `.claude/skills/`, which
@@ -181,10 +188,51 @@ their own runs. For commands you type:
   logins first (discover-a-client playbook step 2) so you approve them in one
   batch, and prefer one shared SSO session over a login per profile.
 
+## OpenAI Codex  (`--tools codex`)
+
+What gets generated in the workspace:
+| File | Purpose |
+|---|---|
+| AGENTS.md | team rules (Codex reads it natively) |
+| .agents/skills/<name>/SKILL.md | the skills (onboard, update-team, check-setup are `$skill`-only) |
+| .codex/agents/*.toml | architect, engineer, security (read-only sandbox), retro |
+| .codex/rules/engineering-framework.rules | pre-approves ONLY the local snapshot command |
+
+Set up:
+1. Install Codex (CLI or IDE extension) and sign in.
+2. `cd <workspace>` and run `codex`. Trust the folder when asked: project
+   config and rules load only for trusted projects.
+3. Don't give the rulebook with `--add-dir`: that makes it writable. The
+   agent reads it by its full path.
+
+Check it works: "status" gives the recap with file limits; "park" ends with
+"saved local snapshot" and a commit in `git log`. Invoke a skill directly with
+`$name` (e.g. `$tidy`). Codex delegates to the specialists when the team rules
+say to; models aren't pinned (names change) and inherit your choice.
+
+Gotcha: non-interactive `codex exec` on Windows may block every command by
+default; interactive use asks you instead. Never use the
+"dangerously bypass approvals and sandbox" option on a client machine.
+
+## Orca (agent development environment)
+
+Orca runs Claude Code, Codex and other agent CLIs in its own window, one git
+worktree per task. It has no agent format of its own, so set the workspace up
+for the agent you'll run inside it (`--tools claude` or `--tools codex`).
+1. IMPORTANT: Orca's default "Yolo" mode starts Claude Code and Codex with
+   their permission checks switched off, which bypasses the team's guardrails
+   (read-only rulebook, approvals). Set Settings > Agents to **Manual** first.
+2. Memory lives in the client workspace: run memory work (resume, park, tidy,
+   onboard) with the workspace itself, not a task worktree, or each worktree
+   gets its own copy of NOW.md and the logs and they drift apart. Orca's
+   worktrees suit work in the client's code repos.
+
 ## For the agent ("check setup")
 1. Run `node --version`. If it fails with an OpenSSL error, point me to "Node
    or git won't start" above and stop.
-2. Run `node {{FRAMEWORK}}/tools/workspace.mjs doctor <this workspace>` and go
+2. If you're running inside Orca, ask me to confirm it's in Manual mode (see
+   "Orca" above).
+3. Run `node {{FRAMEWORK}}/tools/workspace.mjs doctor <this workspace>` and go
    through each FIX line with me. Identify the tool you're running in and
    read its section above.
 3. Ask me to confirm the UI items for that tool (agent list, lock icon,

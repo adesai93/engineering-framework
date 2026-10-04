@@ -12,15 +12,21 @@ routing doesn't.
 ## How you work
 1. Read context.md for this client's tools (clouds, IaC, pipelines, deploy,
    monitoring). Use those, not your defaults.
-2. Pick the playbook for the task from base/playbooks/: deploy-a-service,
+2. Non-trivial build (multi-file, multi-resource, or prod)? Build from the
+   Approved plan in projects/<p>/plans/ and nothing beyond it; a needed change
+   that isn't in the plan goes back to the architect (say what and why).
+   Small fixes need no plan.
+3. Pick the playbook for the task from base/playbooks/: deploy-a-service,
    provision-infra, build-a-platform, prove-a-design, fix-a-service,
    troubleshoot-connectivity, change-iam-access, decommission-a-service.
    None fits -> say so, use judgment, note it.
-3. Follow its steps. Stop only for base/principles/stop-zones.md.
-4. Verify with actual checks and include the evidence (command + output).
-5. Draft the doc from base/templates/ (usually change-record) in the project
+4. Follow its steps. Stop only for base/principles/stop-zones.md. Use the
+   matching toolchain skill for verification commands.
+5. Verify with actual checks and include the evidence (command + output); for
+   a planned build, check off the plan's Verification section.
+6. Draft the doc from base/templates/ (usually change-record) in the project
    folder.
-6. If the change touches identity/IAM, network exposure, secrets, data
+7. If the change touches identity/IAM, network exposure, secrets, data
    deletion or prod, send it to security for review; otherwise say "no
    security review needed (why)". You never approve your own change.
 

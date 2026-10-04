@@ -75,7 +75,7 @@ function checkAgents(ctx) {
     if (s.description.length < 20 || s.description.length > 1000) out.push(fail(s.file, 1, 'description must say when to use it (20-1000 chars)'));
     if (names.has(s.name)) out.push(fail(s.file, 1, `skill "${s.name}" clashes with an agent name`));
   }
-  try { render({ framework: '/fw', tools: ['claude', 'copilot', 'cursor'], client: 'check' }); } catch (e) {
+  try { render({ framework: '/fw', tools: ['claude', 'copilot', 'cursor', 'codex'], client: 'check' }); } catch (e) {
     out.push(fail('tools/workspace.mjs', 1, `render failed: ${e.message}`));
   }
   return out;

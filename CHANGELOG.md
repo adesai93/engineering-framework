@@ -5,6 +5,26 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.12.0] - 2026-10-04
+### Added
+- OpenAI Codex support (`--tools codex`): AGENTS.md, .agents/skills (user-only
+  skills via agents/openai.yaml), .codex/agents/*.toml (security read-only
+  sandbox), .codex/rules pre-approving only the local snapshot. Verified live:
+  status and park (snapshot committed) through Codex.
+- Orca guidance in SETUP.md: set Manual mode (its default Yolo mode switches
+  off Claude Code / Codex permission checks); keep memory work out of worktrees.
+- Toolchain skills (opt-in per client with `--toolchains`): terraform,
+  bicep-arm, powershell, azure-cli, aws-cli, kql, pipelines-yaml. Thin:
+  verification commands, safety stops, pointers to official vendor skills.
+- Plan / execute split: the architect writes plans (new `plan` doc type,
+  projects/<p>/plans/); the engineer builds only from an Approved plan.
+- Fold outcomes back on close: decisions, inventory facts and context move
+  into shared memory before a project is archived.
+- Retro merges duplicate feedback and proposes a skill or rule for lessons
+  that recur 3+ times. `<private>` text is never written to files.
+### Fixed
+- `update` no longer drops a workspace's backup settings.
+
 ## [0.11.0] - 2026-10-04
 Optimised against Anthropic, GitHub Copilot / VS Code and Cursor docs.
 ### Added

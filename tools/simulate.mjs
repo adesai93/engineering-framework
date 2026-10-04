@@ -79,6 +79,15 @@ function check(c, dir, reply, before) {
     case 'nowhere-matches': { const hit = new RegExp(c.regex).test(mdText(dir)); return [hit === (c.expect ?? false), hit ? `found /${c.regex}/ in workspace files` : '']; }
     case 'reply-matches': { const ok = new RegExp(c.regex, 'im').test(reply); return [ok, ok ? '' : `reply lacks /${c.regex}/`]; }
     case 'reply-not-matches': { const bad = new RegExp(c.regex, 'im').test(reply); return [!bad, bad ? `reply has /${c.regex}/` : '']; }
+    case 'dir-exists': { const ok = existsSync(join(dir, c.path)); return [ok, ok ? '' : `${c.path} missing`]; }
+    case 'glob-exists': {
+      const found = []; const re = new RegExp(c.regex);
+      const walk = (d, rel) => { for (const e of readdirSync(d, { withFileTypes: true })) {
+        const r = rel ? `${rel}/${e.name}` : e.name; if (e.isDirectory()) walk(join(d, e.name), r); else if (re.test(r)) found.push(r);
+      } };
+      if (existsSync(join(dir, c.dir))) walk(join(dir, c.dir), '');
+      return [found.length > 0, found.length ? '' : `no file under ${c.dir} matching /${c.regex}/`];
+    }
     case 'git-log-matches': {
       const log = sh('git', ['log', '--oneline', '-10'], dir); const ok = new RegExp(c.regex, 'i').test(log);
       return [ok, ok ? '' : `no commit matching /${c.regex}/`];

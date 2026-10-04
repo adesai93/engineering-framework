@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Creates and updates client workspaces. Node built-ins only.
-//   node tools/workspace.mjs new <client> <path> [--tools claude,copilot,cursor] [--repos <dir>]...
+//   node tools/workspace.mjs new <client> <path> [--tools claude,copilot,cursor,codex] [--repos <dir>]...
 //   node tools/workspace.mjs update <path> [--repos <dir>]...
 //   node tools/workspace.mjs upgrade | refresh | doctor [<workspace>]
 // --repos (repeatable): folders of this client's existing clones, or single repo
@@ -15,7 +15,7 @@ import { execFileSync } from 'node:child_process';
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const TEMPLATE = join(ROOT, 'workspace-template');
 const CONFIG = '.engineering-framework.json';
-const TOOLS = ['claude', 'copilot', 'cursor'];
+const TOOLS = ['claude', 'copilot', 'cursor', 'codex'];
 
 const normalize = (s) => s.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
 const read = (p) => normalize(readFileSync(p, 'utf8'));
@@ -61,7 +61,7 @@ export function loadSkills(root = ROOT) {
     const m = read(join(dir, f)).match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
     if (!m) throw new Error(`skills/${f}: missing --- frontmatter ---`);
     const meta = Object.fromEntries(m[1].split('\n').map((l) => l.match(/^([\w-]+):\s*(.*)$/)).filter(Boolean).map((k) => [k[1], k[2].trim()]));
-    return { file: `skills/${f}`, name: meta.name || basename(f, '.md'), description: meta.description || '', userOnly: meta.invocation === 'user', body: m[2].trim() + '\n' };
+    return { file: `skills/${f}`, name: meta.name || basename(f, '.md'), description: meta.description || '', userOnly: meta.invocation === 'user', toolchain: meta.toolchain || null, body: m[2].trim() + '\n' };
   });
 }
 
@@ -76,7 +76,7 @@ const yamlStr = (s) => (/^[\w(][^\n]*$/.test(s) && !/: |\s#|^(yes|no|true|false|
   ? s : `'${s.replace(/'/g, "''")}'`);
 
 // Returns { 'relative/path': content } for one workspace.
-export function render({ framework, tools, client, repos }, root = ROOT) {
+export function render({ framework, tools, client, repos, toolchains }, root = ROOT) {
   const fw = framework.replace(/\\/g, '/');
   const repoDirs = asList(repos).map((r) => r.replace(/\\/g, '/'));
   const reposText = repoDirs.length ? repoDirs.join(', ') : 'repos/ in this workspace';
@@ -86,7 +86,9 @@ export function render({ framework, tools, client, repos }, root = ROOT) {
   const team = absolutize(read(join(root, 'agents/team.md')), fw).replaceAll('{{REPOS}}', reposText).replaceAll('{{SNAPSHOT}}', snapshotCmd(fw));
   out['AGENTS.md'] = `${note('agents/team.md')}\n\n${team}`;
   const agents = loadAgents(root);
-  for (const s of loadSkills(root)) {
+  // Toolchain skills are opt-in per client (--toolchains); default: all of them.
+  // .claude/skills is read by Claude Code, Copilot (VS Code) and Cursor; Codex gets .agents/skills below.
+  for (const s of tools.some((x) => ['claude', 'copilot', 'cursor'].includes(x)) ? loadSkills(root).filter((k) => !k.toolchain || !toolchains || toolchains.includes(k.toolchain)) : []) {
     const fm = [`name: ${s.name}`, `description: ${yamlStr(s.description)}`];
     if (s.userOnly) fm.push('disable-model-invocation: true');
     out[`.claude/skills/${s.name}/SKILL.md`] = `---\n${fm.join('\n')}\n---\n${note(s.file)}\n\n${absolutize(s.body, fw)}`;
@@ -116,6 +118,27 @@ export function render({ framework, tools, client, repos }, root = ROOT) {
       }
       out[`.github/agents/${a.name}.agent.md`] = `---\n${fm.join('\n')}\n---\n${note(a.file)}\n\n${absolutize(a.body, fw)}`;
     }
+  }
+  // Codex reads AGENTS.md natively; skills from .agents/skills, agents from
+  // .codex/agents/*.toml, command rules from .codex/rules (trusted projects only).
+  if (tools.includes('codex')) {
+    const tomlStr = (s) => JSON.stringify(s); // TOML basic strings use JSON-compatible escapes
+    for (const s of loadSkills(root).filter((k) => !k.toolchain || !toolchains || toolchains.includes(k.toolchain))) {
+      out[`.agents/skills/${s.name}/SKILL.md`] = `---\nname: ${s.name}\ndescription: ${yamlStr(s.description)}\n---\n${note(s.file)}\n\n${absolutize(s.body, fw)}`;
+      // Codex has no frontmatter flag for user-only skills; this makes it $skill-only.
+      if (s.userOnly) out[`.agents/skills/${s.name}/agents/openai.yaml`] = 'policy:\n  allow_implicit_invocation: false\n';
+    }
+    for (const a of agents) {
+      const body = absolutize(a.body, fw).replaceAll("'''", "'' '");
+      const lines = [`# ${note(a.file).replace(/^<!-- | -->$/g, '')}`, `name = ${tomlStr(a.name)}`, `description = ${tomlStr(a.meta.description || '')}`];
+      if (a.meta.codex_sandbox) lines.push(`sandbox_mode = ${tomlStr(a.meta.codex_sandbox)}`);
+      lines.push(`developer_instructions = '''\n${body}'''`);
+      out[`.codex/agents/${a.name}.toml`] = lines.join('\n') + '\n';
+    }
+    // Pre-approve ONLY the local workspace snapshot; everything else keeps its normal approval.
+    const [nodeBin, script] = ['node', `${fw}/tools/workspace.mjs`];
+    out['.codex/rules/engineering-framework.rules'] = `# ${note('tools/workspace.mjs').replace(/^<!-- | -->$/g, '')}\n`
+      + `prefix_rule(pattern=[${tomlStr(nodeBin)}, ${tomlStr(script)}, "snapshot"], decision="allow", justification="Local snapshot of this client workspace; refuses if a git remote exists; never pushes.")\n`;
   }
   // Cursor reads AGENTS.md natively for the team rules; subagents go in .cursor/agents.
   if (tools.includes('cursor')) {
@@ -181,13 +204,14 @@ function writeClaudeSettings(ws, fw, repos) {
 function install(ws, cfg) {
   const files = render(cfg);
   // Remove generated skills that no longer exist in the rulebook (never the user's own).
-  const sk = join(ws, '.claude/skills');
-  if (existsSync(sk)) {
+  for (const base of ['.claude/skills', '.agents/skills']) {
+    const sk = join(ws, base);
+    if (!existsSync(sk)) continue;
     for (const d of readdirSync(sk)) {
       const p = join(sk, d, 'SKILL.md');
-      if (existsSync(p) && read(p).includes('Generated by engineering-framework') && !files[`.claude/skills/${d}/SKILL.md`]) {
+      if (existsSync(p) && read(p).includes('Generated by engineering-framework') && !files[`${base}/${d}/SKILL.md`]) {
         rmSync(join(sk, d), { recursive: true, force: true });
-        console.log(`  removed .claude/skills/${d} (no longer in the rulebook)`);
+        console.log(`  removed ${base}/${d} (no longer in the rulebook or not opted in)`);
       }
     }
   }
@@ -199,7 +223,10 @@ function install(ws, cfg) {
   }
   if (cfg.tools.includes('claude')) { writeClaudeSettings(ws, cfg.framework, cfg.repos); console.log('  wrote .claude/settings.json'); }
   const commit = (() => { try { return gitOut(ROOT, ['rev-parse', '--short', 'HEAD']); } catch { return 'unknown'; } })();
-  writeFileSync(join(ws, CONFIG), JSON.stringify({ ...cfg, version: frameworkVersion(), commit }, null, 2) + '\n');
+  // Merge with what's there: keep settings other commands own (backupDir, lastBackup).
+  let prev = {};
+  try { prev = JSON.parse(read(join(ws, CONFIG))); } catch { /* first install */ }
+  writeFileSync(join(ws, CONFIG), JSON.stringify({ ...prev, ...cfg, version: frameworkVersion(), commit }, null, 2) + '\n');
   remember(ws);
   installPullHook();
 }
@@ -349,7 +376,7 @@ function git(ws, args) {
   try { execFileSync('git', args, { cwd: ws, stdio: 'ignore', env: CHILD_ENV }); return true; } catch { return false; }
 }
 
-function cmdNew(client, path, tools, repos) {
+function cmdNew(client, path, tools, repos, toolchains) {
   if (!client || !path) usage();
   if (!/^[a-z0-9][a-z0-9-]*$/.test(client)) die('client name: lowercase letters, digits and dashes (e.g. client-a)');
   const ws = resolve(path);
@@ -361,7 +388,7 @@ function cmdNew(client, path, tools, repos) {
     const p = join(ws, f);
     writeFileSync(p, read(p).replaceAll('<CLIENT>', client));
   }
-  const cfg = { client, framework: slash(ROOT), tools, ...(repos.length ? { repos: repos.map(slash) } : {}) };
+  const cfg = { client, framework: slash(ROOT), tools, ...(repos.length ? { repos: repos.map(slash) } : {}), ...(toolchains ? { toolchains } : {}) };
   console.log(`Creating workspace for ${client} at ${ws}`);
   install(ws, cfg);
   if (git(ws, ['init', '-q'])) {
@@ -376,7 +403,7 @@ function cmdNew(client, path, tools, repos) {
   if (tools.includes('cursor')) console.log(`  Cursor:           File > Open Workspace from File > ${wsFile}`);
 }
 
-function cmdUpdate(path, repos) {
+function cmdUpdate(path, repos, toolchains) {
   if (!path) usage();
   const ws = resolve(path);
   const p = join(ws, CONFIG);
@@ -386,7 +413,8 @@ function cmdUpdate(path, repos) {
   cfg.framework = slash(ROOT); // the framework may have moved
   const repoList = repos.length ? repos.map(slash) : asList(cfg.repos);
   console.log(`Updating ${cfg.client} workspace at ${ws} to v${frameworkVersion()}`);
-  install(ws, { client: cfg.client, framework: cfg.framework, tools: cfg.tools, ...(repoList.length ? { repos: repoList } : {}) });
+  const tc = toolchains || cfg.toolchains;
+  install(ws, { client: cfg.client, framework: cfg.framework, tools: cfg.tools, ...(repoList.length ? { repos: repoList } : {}), ...(tc ? { toolchains: tc } : {}) });
   // Template files added in newer versions (e.g. rules.md): copy only if missing.
   for (const e of readdirSync(TEMPLATE, { withFileTypes: true })) {
     if (!e.isFile() || existsSync(join(ws, e.name))) continue;
@@ -548,8 +576,8 @@ function cmdForget(path) {
 function usage() {
   console.error([
     'usage:',
-    '  node tools/workspace.mjs new <client> <path> [--tools claude,copilot,cursor] [--repos <dir>]...',
-    '  node tools/workspace.mjs update <path> [--repos <dir>]...',
+    '  node tools/workspace.mjs new <client> <path> [--tools claude,copilot,cursor,codex] [--repos <dir>]... [--toolchains a,b]',
+    '  node tools/workspace.mjs update <path> [--repos <dir>]... [--toolchains a,b]',
     '  node tools/workspace.mjs upgrade             (checked pull of the rulebook + refresh)',
     '  node tools/workspace.mjs refresh             (regenerate every workspace here; runs after git pull)',
     '  node tools/workspace.mjs doctor [<workspace>] (health check: what\'s OK, what to fix)',
@@ -572,8 +600,17 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
     if (!r || !existsSync(r)) die(`--repos needs an existing folder (got: ${r || 'nothing'})`);
     repos.push(r);
   }
-  if (cmd === 'new') cmdNew(rest[0], rest[1], tools, repos);
-  else if (cmd === 'update') cmdUpdate(rest[0], repos);
+  // --toolchains terraform,bicep-arm,... : only those toolchain skills (default: all).
+  const tci = rest.indexOf('--toolchains');
+  let toolchains;
+  if (tci >= 0) {
+    toolchains = (rest[tci + 1] || '').split(',').filter(Boolean); rest.splice(tci, 2);
+    const known = loadSkills().map((s) => s.toolchain).filter(Boolean);
+    const bad = toolchains.filter((x) => !known.includes(x));
+    if (bad.length) die(`unknown toolchain(s): ${bad.join(', ')}. Choose from: ${known.join(', ')}`);
+  }
+  if (cmd === 'new') cmdNew(rest[0], rest[1], tools, repos, toolchains);
+  else if (cmd === 'update') cmdUpdate(rest[0], repos, toolchains);
   else if (cmd === 'upgrade') cmdUpgrade();
   else if (cmd === 'refresh') cmdRefresh();
   else if (cmd === 'doctor') cmdDoctor(rest[0]);
