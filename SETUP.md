@@ -116,6 +116,18 @@ Gotchas:
 
 ---
 
+## Model choice and cost (all tools)
+- Usage is billed per token at model rates. The most expensive models (e.g.
+  Opus-class) use a plan's included usage several times faster than mid-tier
+  ones (e.g. Sonnet-class).
+- Daily driver: a mid-tier model. Switch to the top model for hard designs or
+  stubborn debugging, then back.
+- The biggest cost is a long chat: every message re-sends all of it. Park and
+  start a new chat when the context meter passes ~50%.
+- Specialist hand-offs are separate runs. The lead only delegates when a task
+  needs it, and security reviews only risky changes, unless you say "review".
+- Check your tool's usage dashboard by model to see where it went.
+
 ## For the agent ("check setup")
 1. Identify the tool you're running in. Read that section above.
 2. Check what you can yourself: you can read the rulebook, the specialists

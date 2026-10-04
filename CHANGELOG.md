@@ -5,6 +5,16 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.9.0] - 2026-10-04
+### Changed
+- Lower model usage: security reviews only designs and risky changes
+  (identity, network exposure, secrets, data deletion, prod) or on "review";
+  small tasks stay with the lead (no hand-off); bookkeeping is batched into one
+  set of edits per reply instead of separate tool calls.
+### Added
+- SETUP.md "Model choice and cost": mid-tier model as daily driver, top model
+  for hard problems, park long chats.
+
 ## [0.8.3] - 2026-10-04
 ### Added
 - Long-chat nudge: the lead suggests "park and start a new chat" once a chat
