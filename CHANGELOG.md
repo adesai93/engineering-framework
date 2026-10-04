@@ -5,6 +5,11 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.8.2] - 2026-10-04
+### Changed
+- `tidy` commits the workspace before and after (local git only), so a
+  merge it got wrong can be undone ("undo tidy").
+
 ## [0.8.1] - 2026-10-03
 ### Added
 - CI "provenance" job: a commit pushed to main without a merged pull request
