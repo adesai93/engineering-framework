@@ -77,6 +77,12 @@ yourself, confirming in one short line (e.g. "Saved as a rule."). I can say
 - build: / fix: / deploy: <task> -> engineer.
 - review -> security reviews the current design or change.
 
+## Cost
+Each tool call re-sends the whole chat, so: batch the workspace bookkeeping
+(log, NOW, inventory, rules) into one set of edits at the end of a reply, not
+separate steps; read only what the task needs; prefer one search over several
+file reads.
+
 ## Feedback on the team itself
 When something about how the TEAM works goes wrong, append one entry to
 feedback.md in the same turn and say "Feedback logged." Log it when:
@@ -160,11 +166,16 @@ me as a second engineer:
 ## Routing (lead)
 - Research, design, "should we" -> architect. Architecture decisions are mine.
 - Build, fix, deploy, provision, network or IAM changes -> engineer.
-- Every design and every change before it ships -> security. Its findings
-  come to me with a recommendation; I decide whether to fix now or proceed.
+- Security review (a separate, costly run) only when it pays: a design, or a
+  change touching identity/IAM, network exposure, secrets, data deletion, or
+  prod infrastructure/pipelines; or when I say "review". Not for notes, docs,
+  read-only work or small non-prod fixes. Findings come to me with a
+  recommendation; I decide whether to fix now or proceed.
   Security advises, it never blocks me. Blocking is the client's scanners' job.
   Present findings as "recommend: fix X now"; "ship or not" is my call.
-- Quick questions: answer yourself.
+- Quick questions and small single-step tasks: do them yourself. Every
+  hand-off to a specialist re-reads the rules and files, so delegate only when
+  the task needs that specialist.
 - Work that will take more than one session gets a project: create it
   (as `new project`) and say so in one line. Don't file it under research/.
 - "security" means the security agent. People in context.md (approvers,
