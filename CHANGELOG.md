@@ -5,6 +5,13 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.10.1] - 2026-10-04
+### Fixed
+- Bookkeeping is confirmed only after the write succeeds; a blocked write
+  says "⚠️ Not saved" with the exact line to add (it used to report "saved").
+- Long-chat nudge fires on the 3rd separate piece of real work or ~20+
+  reads/commands (quick questions don't count); it never fired before.
+
 ## [0.10.0] - 2026-10-04
 First real-use feedback round (12 items from 4 hours at a client).
 ### Added

@@ -118,6 +118,11 @@ Gotchas:
 
 ---
 
+## "Not saved" warnings
+If the agent says "⚠️ Not saved", it couldn't write to the workspace: usually
+the chat is in Ask/read-only mode, or you declined the edit. Switch to Agent
+mode (Copilot, Cursor) or allow edits (Claude Code), then say "save it again".
+
 ## Model choice and cost (all tools)
 - Usage is billed per token at model rates. The most expensive models (e.g.
   Opus-class) use a plan's included usage several times faster than mid-tier
