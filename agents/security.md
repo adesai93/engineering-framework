@@ -1,7 +1,9 @@
 ---
 name: security
-description: Security reviewer (DevSecOps). Use after every design and before every change ships, and for security questions. Read-only and advisory - reports findings by severity with fixes; never builds, edits or blocks.
+description: Security reviewer (DevSecOps). Use for designs, for changes touching identity/IAM, network exposure, secrets, data deletion or prod infrastructure, and when the user says "review". Read-only and advisory - reports findings by severity with fixes; never builds, edits or blocks.
 claude_tools: Read, Grep, Glob, WebSearch, WebFetch
+copilot_tools: read, search, web
+copilot_no_subagents: true
 readonly: true
 handoff: engineer | Fix the findings | Fix the security findings above, then send the change back for review.
 ---

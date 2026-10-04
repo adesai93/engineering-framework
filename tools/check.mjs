@@ -4,14 +4,14 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, posix } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { ROOT, loadAgents, render } from './workspace.mjs';
+import { ROOT, loadAgents, loadSkills, render } from './workspace.mjs';
 
 const STOP_ZONES = 'base/principles/stop-zones.md';
 const DOC_STANDARD = 'base/standards/documentation.md';
 const CHANGELOG = 'CHANGELOG.md';
 // Only a slash-token starting with one of these is a path ("Terraform/Bicep" is not).
 // Workspace paths (projects/, research/, log/) live in client workspaces, not here.
-const TOP_DIRS = ['base', 'agents', 'tools', 'workspace-template'];
+const TOP_DIRS = ['base', 'agents', 'skills', 'tools', 'workspace-template'];
 // Bare names: "stop-zones.md", "check.mjs". No yml/yaml: bare ones (azure-pipelines.yml,
 // buildspec.yml, cloudbuild.yaml) name client-repo files.
 const BARE_EXT = ['md', 'mdc', 'mjs'];
@@ -65,6 +65,15 @@ function checkAgents(ctx) {
       if (!names.has(h.agent)) out.push(fail(a.file, 1, `handoff to unknown agent "${h.agent}"`));
       if (!h.label || !h.prompt) out.push(fail(a.file, 1, 'handoff needs "agent | label | prompt"'));
     }
+  }
+  // Skills: name matches the file, a description that says when to use it.
+  let skills = [];
+  try { skills = loadSkills(); } catch (e) { out.push(fail('skills/', 1, e.message)); }
+  for (const s of skills) {
+    if (s.name !== posix.basename(s.file, '.md')) out.push(fail(s.file, 1, `name "${s.name}" must match the file name`));
+    if (!/^[a-z0-9-]+$/.test(s.name)) out.push(fail(s.file, 1, 'name: lowercase letters, digits, dashes'));
+    if (s.description.length < 20 || s.description.length > 1000) out.push(fail(s.file, 1, 'description must say when to use it (20-1000 chars)'));
+    if (names.has(s.name)) out.push(fail(s.file, 1, `skill "${s.name}" clashes with an agent name`));
   }
   try { render({ framework: '/fw', tools: ['claude', 'copilot', 'cursor'], client: 'check' }); } catch (e) {
     out.push(fail('tools/workspace.mjs', 1, `render failed: ${e.message}`));
@@ -236,11 +245,12 @@ function checkNoClientData(ctx) {
 // g. CHANGELOG.md has a release; its latest version is what docs record as framework-version.
 // h. Size budgets: agents/team.md is loaded into EVERY chat, so weekly iterations
 // must not quietly grow it. ~4 chars per token.
-const BUDGETS = [['agents/team.md', 16000], ['agents/architect.md', 3000], ['agents/engineer.md', 3000],
+const BUDGETS = [['agents/team.md', 11000], ['agents/architect.md', 3000], ['agents/engineer.md', 3000],
   ['agents/security.md', 3000], ['agents/retro.md', 3000]];
 function checkBudgets(ctx) {
   const out = [];
-  for (const [f, max] of BUDGETS) {
+  const skillBudgets = ctx.files.filter((f) => /^skills\/[^/]+\.md$/.test(f)).map((f) => [f, 4000]);
+  for (const [f, max] of [...BUDGETS, ...skillBudgets]) {
     if (!ctx.fileSet.has(f)) continue;
     const n = read(f).length;
     if (f === 'agents/team.md') ctx.teamTokens = Math.round(n / 4);
@@ -258,6 +268,13 @@ function checkChangelog(ctx) {
   return [];
 }
 
+// i. The rulebook is opened next to client workspaces (multi-root): files that agent
+// tools auto-load must never appear in its root, or they'd apply to every client.
+const AUTOLOADED = /^(AGENTS\.md|CLAUDE\.md|CLAUDE\.local\.md|\.github\/(copilot-instructions\.md|agents\/|instructions\/|skills\/|prompts\/)|\.claude\/|\.cursor\/|\.agents\/|\.cursorrules)/;
+function checkNoAutoload(ctx) {
+  return ctx.files.filter((f) => AUTOLOADED.test(f)).map((f) => fail(f, 1, 'agent tools auto-load this from the rulebook root; move it (generated files belong in workspaces)'));
+}
+
 const CHECKS = [
   ['team definitions', checkAgents],
   ['path references resolve', checkReferences],
@@ -267,6 +284,7 @@ const CHECKS = [
   ['no client data committed', checkNoClientData],
   ['changelog release', checkChangelog],
   ['size budgets', checkBudgets],
+  ['no auto-loaded files in rulebook root', checkNoAutoload],
 ];
 
 function main() {

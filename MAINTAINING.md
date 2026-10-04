@@ -18,11 +18,15 @@ here. Changes reach main through a PR with the CI check passing.
    memory, intent, isolation and docs; task know-how grows from corrections.
 5. Show me the proposals as a table (issue, change, file, why). Apply only
    what I approve.
-6. Keep agents/team.md lean: it's loaded into every chat and has a size
+6. Behaviour changes (agents/, skills/, base/): run
+   `node tools/simulate.mjs` (fictional client, ~$0.3-1 per scenario) and add a
+   scenario to tools/sim/scenarios.json for anything new you fixed.
+   Rarely-needed procedures belong in skills/ (loaded on demand), not team.md.
+7. Keep agents/team.md lean: it's loaded into every chat and has a size
    budget in tools/check.mjs. When adding a rule, look for one to merge or cut.
    Run `node tools/check.mjs`; add a CHANGELOG.md entry (new version: MINOR
    if agent behaviour changes, PATCH for wording).
-7. Move processed reports out of inbox/ (delete them; they are not kept).
+8. Move processed reports out of inbox/ (delete them; they are not kept).
 
 ## Stable state
 The framework is stable when a week's reports show no failures or gaps in

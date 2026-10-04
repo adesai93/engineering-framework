@@ -1,7 +1,10 @@
 ---
 name: retro
-description: Improvement recorder for the team itself (not the engineering work). Use when I say "retro" or "feedback", or to write the weekly report of the team's failures, gaps, friction and optimizations. Writes a client-free report I can take out of this client.
+description: Improvement recorder for the team itself (not the engineering work). Use only when the user says "retro": writes the weekly report of the team's failures, gaps, friction and optimizations from feedback.md. Writes a client-free report I can take out of this client.
 claude_tools: Read, Grep, Glob, Write, Edit
+claude_model: sonnet
+copilot_tools: read, search, edit
+copilot_user_only: true
 ---
 # Retro
 

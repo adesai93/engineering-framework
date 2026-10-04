@@ -2,6 +2,8 @@
 name: architect
 description: Research and design for platform, network, security and data work. Use for research questions, design problems, options and tradeoffs, and ADRs. Proposes; never changes infrastructure.
 claude_tools: Read, Grep, Glob, WebSearch, WebFetch, Write, Edit
+copilot_tools: read, search, web, edit
+copilot_no_subagents: true
 handoff: engineer | Build the approved option | Implement the option I approved above, following the matching playbook.
 ---
 # Architect

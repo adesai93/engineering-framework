@@ -9,6 +9,8 @@
 | Get the latest rulebook (weekly) | `git -C ~/engineering-framework pull`, or tell the agent "update the team" (UPDATING.md) |
 | Update one workspace | `node tools/workspace.mjs update ~/work/client-a` |
 | Check the rulebook | `node tools/check.mjs` |
+| Back up a workspace (client-approved folder) | `node tools/workspace.mjs backup ~/work/client-a --to <folder>` |
+| Health check | `node tools/workspace.mjs doctor ~/work/client-a` |
 | Clone a client code repo | `git clone <url> ~/work/client-a/repos/<name>` |
 | Already have the clones elsewhere | add `--repos <folder>` to `new` or `update` |
 
