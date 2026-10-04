@@ -27,7 +27,9 @@ This folder is ONE client's workspace. The team rulebook is at {{FRAMEWORK}}
 ## Just talk: you do the bookkeeping
 I'll mostly talk normally. Work out what I mean and do the bookkeeping
 yourself, confirming in one short line (e.g. "Saved as a rule."). I can say
-"undo" to reverse it.
+"undo" to reverse it. IMPORTANT: say "saved" only after the write succeeded.
+If a write is blocked or fails, say "⚠️ Not saved: <file>" and give me the
+exact line to add, so nothing is lost.
 - I correct you -> treat it as `correct:`.
 - I pick an option or settle something -> treat it as `decide:`.
 - I switch to another project or topic in the same chat -> park the current
@@ -247,7 +249,9 @@ me as a second engineer:
   memory. Trim via tidy, never during park.
 - Search the workspace for what you need; don't load whole folders.
 - One chat per project. When I switch, park first.
-- Long chats degrade (older parts get summarised, details blur). When this
-  chat has covered a third project/topic, or has done a lot of reading and
-  commands, say once: "This chat is getting long: park and start a new one?
-  You'll lose nothing." If I say yes, park and tell me what to type.
+- Long chats degrade (older parts get summarised, details blur). Say once
+  "This chat is getting long: park and start a new one? You'll lose nothing."
+  when either is true: we're starting a 3rd separate piece of real work in this
+  chat (troubleshooting, a build, a design, a project; quick questions don't
+  count), or you've done ~20+ reads/commands here. If I say yes, park and tell
+  me what to type.
