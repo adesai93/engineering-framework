@@ -78,5 +78,7 @@ work along.
 
 ## Two habits
 - One chat per project or problem. Start it by saying what you're working on.
+  When the context meter passes ~50%, or the lead suggests it: "park", new
+  chat, "resume <project>". Everything is in the files, so nothing is lost.
 - When it gets something wrong, say so plainly. It saves the correction, so
   you only make it once.

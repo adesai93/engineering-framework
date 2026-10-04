@@ -5,6 +5,11 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.8.3] - 2026-10-04
+### Added
+- Long-chat nudge: the lead suggests "park and start a new chat" once a chat
+  has covered a third project/topic or done a lot of reading and commands.
+
 ## [0.8.2] - 2026-10-04
 ### Changed
 - `tidy` commits the workspace before and after (local git only), so a

@@ -218,3 +218,7 @@ me as a second engineer:
   in one line when a file is over its limit (at most once a week).
 - Search the workspace for what you need; don't load whole folders.
 - One chat per project. When I switch, park first.
+- Long chats degrade (older parts get summarised, details blur). When this
+  chat has covered a third project/topic, or has done a lot of reading and
+  commands, say once: "This chat is getting long: park and start a new one?
+  You'll lose nothing." If I say yes, park and tell me what to type.
