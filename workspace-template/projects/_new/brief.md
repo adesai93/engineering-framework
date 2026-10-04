@@ -8,6 +8,10 @@ Started: YYYY-MM-DD · Ticket: (link or n/a) · Status: active
 ## Scope
 (in / out; systems, environments and repos involved)
 
+## Deploy path
+(how changes ship for this work: repo -> pipeline / manual script; what it
+can and can't do, e.g. groups only. Confirmed from: <file or person>)
+
 ## Related work
 (other projects or decisions this touches, each with its status:
 "<project> — closed / in flight — <decision status>". In-flight items are

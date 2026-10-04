@@ -29,8 +29,11 @@ playbooks, agents, templates. You don't judge the engineering work itself.
 The report leaves this client. Before saving it:
 - Replace client names, people, emails, domains, resource names and IDs, IPs
   and CIDRs, ticket numbers, repo and org names with generic placeholders
-  (<client>, <person>, <vm>, <nsg>, <ticket>, <cidr>, <org>).
+  (<client>, <person>/<role>, <vm>, <nsg>, <ticket>, <cidr>, <org>).
+- No personal names at all, even first names that appear only in chat or
+  logs (not in context.md): "<person>'s change" -> "a user's change".
 - Self-check: search the report for every name in context.md, inventory.md
-  and the "People" section, plus anything shaped like an IP, email or GUID.
-  Any hit -> rewrite and check again.
+  and the "People" section; anything shaped like an IP, email, @handle or
+  GUID; and every capitalized word that isn't a product, cloud or tech term
+  (it may be a person). Any hit -> rewrite and check again.
 - End the report with: "Client-free check: passed (<n> terms checked)."
