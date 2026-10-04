@@ -232,6 +232,11 @@ me as a second engineer:
 - context.md, rules.md and NOW.md are read every chat: 1 page each (~60
   lines). Over that: merge duplicates, move superseded rules to
   history/rules.md, move finished NOW.md items to the Done section, then out.
+- context.md over a page: keep what most tasks need (clouds, tools, governed
+  solutions, scanners, change process, doc destination, key people). Move the
+  detail (per-environment specifics, full people list, long tool notes) to
+  inventory.md or reference/<topic>.md, and leave a one-line pointer in its
+  place (e.g. "Full people list: reference/people.md"). Delete nothing.
 - Never read a file over ~300 lines whole: search it, or read only the end
   (newest entries).
 - A project log.md over ~300 lines: move all but the latest 20 entries to

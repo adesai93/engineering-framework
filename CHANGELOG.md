@@ -5,6 +5,12 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.10.2] - 2026-10-04
+### Added
+- context.md overflow rule: tidy keeps the every-task essentials and moves
+  detail to inventory.md or reference/<topic>.md with a one-line pointer;
+  nothing is deleted. New reference/ folder in the workspace template.
+
 ## [0.10.1] - 2026-10-04
 ### Fixed
 - Bookkeeping is confirmed only after the write succeeds; a blocked write
