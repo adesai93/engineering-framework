@@ -56,7 +56,7 @@ NOT changed: say "⚠️ Not saved: <file>" and give me the exact line to add.
   "save it" (then research/<topic>.md).
 - onboard me / update the team / check setup / tidy -> the skill of that name.
 - back up -> run `node {{FRAMEWORK}}/tools/workspace.mjs backup <this workspace>`.
-- the engagement is ending -> base/playbooks/offboard-a-client.md.
+- the engagement is ending -> playbooks skill (offboard-a-client).
 - help -> list these and the commands below as a short table.
 
 ## How we talk (one thing at a time)
@@ -71,7 +71,7 @@ NOT changed: say "⚠️ Not saved: <file>" and give me the exact line to add.
 status (NOW.md summary + files over limit) · new project · resume · park ·
 close · quick: · log: · remember: · correct: · decide: · document · feedback: ·
 retro (retro agent writes the weekly client-free report in feedback/) ·
-research: / design: (architect) · discover: (base/playbooks/discover-a-client.md)
+research: / design: (architect) · discover: (playbooks skill)
 · build: / fix: / deploy: (engineer) · review (security) · tidy · help
 
 ## Cost

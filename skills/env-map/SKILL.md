@@ -1,6 +1,6 @@
 ---
 name: env-map
-description: Build or refresh a per-environment map (address ranges, subnets, peerings, private endpoints, public IPs, service endpoints) from read-only cloud queries, saved to reference/env-<env>.md with a Mermaid diagram and matching inventory.md lines. Use when the user says "map the environment", "map prd/dev", "what's in <env>", or before a design that needs the network picture.
+description: Builds or refreshes a per-environment map (address ranges, subnets, peerings, private endpoints, public IPs, service endpoints) from read-only cloud queries, saved to reference/env-<env>.md with a Mermaid diagram and matching inventory.md lines. Use when the user says "map the environment", "map prd/dev", "what's in <env>", or before a design that needs the network picture.
 ---
 # Env map
 

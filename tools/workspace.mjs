@@ -64,18 +64,40 @@ export function loadAgents(root = ROOT) {
   });
 }
 
-// skills/<name>.md -> { name, description, userOnly, body }. Emitted to
-// .claude/skills/<name>/SKILL.md, which Claude Code, VS Code (Copilot) and Cursor
-// all read: only the name + description sit in context until a skill is used.
+// skills/<name>/SKILL.md (+ reference files and scripts beside it) ->
+// { name, description, userOnly, body, extras: [relative paths] }. Emitted to
+// .claude/skills/<name>/, which Claude Code, VS Code (Copilot) and Cursor all
+// read: only the name + description sit in context until a skill is used, and a
+// reference file only when SKILL.md sends the agent to it (progressive disclosure).
 export function loadSkills(root = ROOT) {
   const dir = join(root, 'skills');
   if (!existsSync(dir)) return [];
-  return readdirSync(dir).filter((f) => f.endsWith('.md')).sort().map((f) => {
-    const m = read(join(dir, f)).match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-    if (!m) throw new Error(`skills/${f}: missing --- frontmatter ---`);
+  return readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort().map((d) => {
+    const p = join(dir, d, 'SKILL.md');
+    if (!existsSync(p)) throw new Error(`skills/${d}/: missing SKILL.md`);
+    const m = read(p).match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+    if (!m) throw new Error(`skills/${d}/SKILL.md: missing --- frontmatter ---`);
     const meta = Object.fromEntries(m[1].split('\n').map((l) => l.match(/^([\w-]+):\s*(.*)$/)).filter(Boolean).map((k) => [k[1], k[2].trim()]));
-    return { file: `skills/${f}`, name: meta.name || basename(f, '.md'), description: meta.description || '', userOnly: meta.invocation === 'user', toolchain: meta.toolchain || null, body: m[2].trim() + '\n' };
+    const extras = [];
+    const walk = (sub) => {
+      for (const f of readdirSync(join(dir, d, sub), { withFileTypes: true })) {
+        const rel = sub ? `${sub}/${f.name}` : f.name;
+        if (f.isDirectory()) walk(rel); else if (rel !== 'SKILL.md') extras.push(rel);
+      }
+    };
+    walk('');
+    return { file: `skills/${d}/SKILL.md`, dir: d, name: meta.name || d, description: meta.description || '', userOnly: meta.invocation === 'user', toolchain: meta.toolchain || null, body: m[2].trim() + '\n', extras: extras.sort() };
   });
+}
+// A skill's files for one tool's skills folder: SKILL.md with its frontmatter, then
+// each reference file / script as-is (Markdown gets absolute rulebook paths).
+function skillFiles(s, base, fm, fw, note, root) {
+  const out = { [`${base}/${s.name}/SKILL.md`]: `---\n${fm.join('\n')}\n---\n${note(s.file)}\n\n${absolutize(s.body, fw)}` };
+  for (const rel of s.extras) {
+    const text = read(join(root, 'skills', s.dir, rel));
+    out[`${base}/${s.name}/${rel}`] = rel.endsWith('.md') ? `${note(`skills/${s.dir}/${rel}`)}\n\n${absolutize(text, fw)}` : text;
+  }
+  return out;
 }
 
 // Make rulebook paths absolute so every tool finds them from inside the workspace.
@@ -104,7 +126,7 @@ export function render({ framework, tools, client, repos, toolchains }, root = R
   for (const s of tools.some((x) => ['claude', 'copilot', 'cursor'].includes(x)) ? loadSkills(root).filter((k) => !k.toolchain || !toolchains || toolchains.includes(k.toolchain)) : []) {
     const fm = [`name: ${s.name}`, `description: ${yamlStr(s.description)}`];
     if (s.userOnly) fm.push('disable-model-invocation: true');
-    out[`.claude/skills/${s.name}/SKILL.md`] = `---\n${fm.join('\n')}\n---\n${note(s.file)}\n\n${absolutize(s.body, fw)}`;
+    Object.assign(out, skillFiles(s, '.claude/skills', fm, fw, note, root));
   }
   if (tools.includes('claude')) {
     // Imports load the every-chat memory files at launch and again after /compact.
@@ -137,7 +159,7 @@ export function render({ framework, tools, client, repos, toolchains }, root = R
   if (tools.includes('codex')) {
     const tomlStr = (s) => JSON.stringify(s); // TOML basic strings use JSON-compatible escapes
     for (const s of loadSkills(root).filter((k) => !k.toolchain || !toolchains || toolchains.includes(k.toolchain))) {
-      out[`.agents/skills/${s.name}/SKILL.md`] = `---\nname: ${s.name}\ndescription: ${yamlStr(s.description)}\n---\n${note(s.file)}\n\n${absolutize(s.body, fw)}`;
+      Object.assign(out, skillFiles(s, '.agents/skills', [`name: ${s.name}`, `description: ${yamlStr(s.description)}`], fw, note, root));
       // Codex has no frontmatter flag for user-only skills; this makes it $skill-only.
       if (s.userOnly) out[`.agents/skills/${s.name}/agents/openai.yaml`] = 'policy:\n  allow_implicit_invocation: false\n';
     }
@@ -297,6 +319,16 @@ function install(ws, cfg) {
   // tracking, nor after an older version's updater (e.g. during a rollback).
   const trusted = !!(prev.generated && prev.generatedCommit && prev.generatedCommit === prev.commit);
   const generated = {}; const bk = {}; let unsure = 0;
+  // A file dropped from a skill that still exists (a reference file or script):
+  // remove it, keeping a copy if it was edited since we wrote it.
+  for (const [rel, hash] of Object.entries(prev.generated || {})) {
+    const p = join(ws, rel);
+    if (files[rel] || !/^\.(claude|agents)\/skills\//.test(rel) || !existsSync(p)) continue;
+    const old = read(p);
+    if (sha(old) !== hash) keepCopy(ws, rel, old, bk, 'is no longer in the rulebook');
+    rmSync(p, { force: true });
+    console.log(`  removed ${rel} (no longer in the rulebook)`);
+  }
   for (const [rel, generatedContent] of Object.entries(files)) {
     const p = join(ws, rel);
     mkdirSync(dirname(p), { recursive: true });

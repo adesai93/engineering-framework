@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Hand over commands, scripts, queries or GUI steps that the user runs somewhere other than this agent's shell (jump host, VDI, air-gapped machine, Azure portal, Cloud Shell, a query editor). Use whenever the reply contains anything for the user to paste or click.
+description: Hands over commands, scripts, queries or GUI steps that the user runs somewhere other than this agent's shell (jump host, VDI, air-gapped machine, Azure portal, Cloud Shell, a query editor). Use whenever the reply contains anything for the user to paste or click.
 ---
 # Handoff (code and steps the user runs elsewhere)
 

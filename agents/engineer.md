@@ -18,10 +18,7 @@ routing doesn't.
    Small fixes need no plan.
 3. Before the first edit, state the target repo and branch (from the
    brief's Repos table or the plan). A repo not listed there: ask first.
-4. Pick the playbook for the task from base/playbooks/: deploy-a-service,
-   provision-infra, build-a-platform, prove-a-design, fix-a-service,
-   troubleshoot-connectivity, change-iam-access, decommission-a-service.
-   None fits -> say so, use judgment, note it.
+4. Use the playbooks skill: it picks the playbook for the task.
 5. Follow its steps. Stop only for base/principles/stop-zones.md. Use the
    matching toolchain skill for verification commands. Before any command
    that changes something, check the target against the task: signed-in

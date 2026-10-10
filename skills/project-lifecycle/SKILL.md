@@ -1,6 +1,6 @@
 ---
 name: project-lifecycle
-description: Start, resume, park, close or log work. Use for "new project", "resume", "park", "close", "quick:", "log:", when switching topics, or when the user wraps up ("thanks", "that's it", end of day).
+description: Starts, resumes, parks, closes or logs work. Use for "new project", "resume", "park", "close", "quick:", "log:", when switching topics, or when the user wraps up ("thanks", "that's it", end of day).
 ---
 # Project lifecycle
 

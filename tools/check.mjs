@@ -66,11 +66,12 @@ function checkAgents(ctx) {
       if (!h.label || !h.prompt) out.push(fail(a.file, 1, 'handoff needs "agent | label | prompt"'));
     }
   }
-  // Skills: name matches the file, a description that says when to use it.
+  // Skills: skills/<name>/SKILL.md, name matches the folder, a description that says what and when.
   let skills = [];
   try { skills = loadSkills(); } catch (e) { out.push(fail('skills/', 1, e.message)); }
   for (const s of skills) {
-    if (s.name !== posix.basename(s.file, '.md')) out.push(fail(s.file, 1, `name "${s.name}" must match the file name`));
+    if (s.name !== s.dir) out.push(fail(s.file, 1, `name "${s.name}" must match its folder name`));
+    if (/^(I |I'|You |Use this)/.test(s.description)) out.push(fail(s.file, 1, 'description: third person, what it does then when to use it (it is injected into the system prompt)'));
     if (!/^[a-z0-9-]+$/.test(s.name)) out.push(fail(s.file, 1, 'name: lowercase letters, digits, dashes'));
     if (s.description.length < 20 || s.description.length > 1000) out.push(fail(s.file, 1, 'description must say when to use it (20-1000 chars)'));
     if (names.has(s.name)) out.push(fail(s.file, 1, `skill "${s.name}" clashes with an agent name`));
@@ -133,10 +134,11 @@ function zoneNames() {
   return new Set([...text.matchAll(/^## Zone \d+ — (.+)$/gm), ...text.matchAll(/^\d+\. ([^:]+):/gm)]
     .map((m) => m[1].trim().toLowerCase()));
 }
+const PLAYBOOK_RE = /^skills\/playbooks\/(?!SKILL\.md$)[^/]+\.md$/;
 function checkPlaybooks(ctx) {
   const out = [];
   const zones = ctx.fileSet.has(STOP_ZONES) ? zoneNames() : new Set();
-  for (const p of ctx.files.filter((f) => /^base\/playbooks\/[^/]+\.md$/.test(f))) {
+  for (const p of ctx.files.filter((f) => PLAYBOOK_RE.test(f))) {
     const ls = lines(p);
     // Each step's text = its numbered line + indented continuation lines.
     const steps = ls.flatMap((l, i) => {
@@ -267,7 +269,8 @@ const BUDGETS = [['agents/team.md', 11000], ['agents/architect.md', 3000], ['age
   ['agents/security.md', 3000], ['agents/retro.md', 3000], ['agents/pm.md', 4000]];
 function checkBudgets(ctx) {
   const out = [];
-  const skillBudgets = ctx.files.filter((f) => /^skills\/[^/]+\.md$/.test(f)).map((f) => [f, 4000]);
+  // SKILL.md loads whole when a skill is used; reference files load one at a time.
+  const skillBudgets = ctx.files.filter((f) => /^skills\/[^/]+\/[^/]+\.md$/.test(f)).map((f) => [f, 4000]);
   for (const [f, max] of [...BUDGETS, ...skillBudgets]) {
     if (!ctx.fileSet.has(f)) continue;
     const n = read(f).length;

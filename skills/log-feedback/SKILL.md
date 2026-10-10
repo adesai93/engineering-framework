@@ -1,6 +1,6 @@
 ---
 name: log-feedback
-description: Log a problem with how the agent team works (not the engineering work). Use on "feedback:", when the user corrects something the rulebook should have covered, sounds frustrated, repeats themselves, or a flow didn't fit.
+description: Logs a problem with how the agent team works (not the engineering work). Use on "feedback:", when the user corrects something the rulebook should have covered, sounds frustrated, repeats themselves, or a flow didn't fit.
 ---
 # Log feedback on the team
 
