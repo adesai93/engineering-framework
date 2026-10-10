@@ -48,11 +48,11 @@ test('new: every tool gets its files, one local commit, config records generated
   ok(rd(join(A, '.github/agents/architect.agent.md')).includes('agent: pm'), 'architect -> pm handoff missing');
   // Pre-approved commands: snapshot and the read-only export check only, in every tool.
   const allow = json(join(A, '.claude/settings.json')).permissions.allow;
-  ok(allow.length === 2 && allow.every((a) => / (snapshot|check-export):\*\)$/.test(a)), `Claude allow list: ${allow}`);
+  ok(allow.length === 3 && allow.every((a) => /( (snapshot|check-export)|handoff\/pack\.mjs):\*\)$/.test(a)), `Claude allow list: ${allow}`);
   const auto = Object.keys(json(join(A, 'acme.code-workspace')).settings['chat.tools.terminal.autoApprove']);
   ok(auto.length === 2 && auto.some((k) => k.includes('snapshot')) && auto.some((k) => k.includes('check-export')), `Copilot auto-approve: ${auto}`);
   const rules = rd(join(A, '.codex/rules/engineering-framework.rules'));
-  ok((rules.match(/prefix_rule/g) || []).length === 2 && rules.includes('"check-export"'), 'Codex rules');
+  ok((rules.match(/prefix_rule/g) || []).length === 3 && rules.includes('"check-export"') && rules.includes('handoff/pack.mjs'), 'Codex rules');
   ok(json(join(A, '.claude/settings.json')).permissions.deny.some((d) => d.startsWith('Edit(')), 'Claude rulebook deny missing');
   ok(rd(join(A, '.claude/agents/retro.md')).includes('tools: Read, Grep, Glob, Write, Edit, Bash'), 'retro cannot run the export check');
 });

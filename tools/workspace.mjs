@@ -170,11 +170,12 @@ export function render({ framework, tools, client, repos, toolchains }, root = R
       lines.push(`developer_instructions = '''\n${body}'''`);
       out[`.codex/agents/${a.name}.toml`] = lines.join('\n') + '\n';
     }
-    // Pre-approve ONLY the local workspace snapshot; everything else keeps its normal approval.
+    // Pre-approve ONLY the local snapshot and two read-only helpers; everything else keeps its normal approval.
     const [nodeBin, script] = ['node', `${fw}/tools/workspace.mjs`];
     out['.codex/rules/engineering-framework.rules'] = `# ${note('tools/workspace.mjs').replace(/^<!-- | -->$/g, '')}\n`
       + `prefix_rule(pattern=[${tomlStr(nodeBin)}, ${tomlStr(script)}, "snapshot"], decision="allow", justification="Local snapshot of this client workspace; refuses if a git remote exists; never pushes.")\n`
-      + `prefix_rule(pattern=[${tomlStr(nodeBin)}, ${tomlStr(script)}, "check-export"], decision="allow", justification="Read-only client-free check of a report before it leaves this workspace.")\n`;
+      + `prefix_rule(pattern=[${tomlStr(nodeBin)}, ${tomlStr(script)}, "check-export"], decision="allow", justification="Read-only client-free check of a report before it leaves this workspace.")\n`
+      + `prefix_rule(pattern=[${tomlStr(nodeBin)}, ${tomlStr(`${fw}/skills/handoff/pack.mjs`)}], decision="allow", justification="Read-only: prints a paste-safe PowerShell block for the handoff skill.")\n`;
   }
   // Cursor reads AGENTS.md natively for the team rules; subagents go in .cursor/agents.
   if (tools.includes('cursor')) {
@@ -235,6 +236,7 @@ function writeClaudeSettings(ws, fw, repos) {
   const allow = new Set(s.permissions.allow || []);
   allow.add(`Bash(${snapshotCmd(fw)}:*)`);
   allow.add(`Bash(${exportCmd(fw)}:*)`); // read-only client-free check
+  allow.add(`Bash(${packCmd(fw)}:*)`); // read-only: prints a handoff block
   s.permissions.allow = [...allow];
   mkdirSync(dirname(p), { recursive: true });
   writeFileSync(p, JSON.stringify(s, null, 2) + '\n');
@@ -773,6 +775,8 @@ function cmdBackup(path, to, anyway) {
 // a git remote, so client notes can't be sent anywhere by it.
 export const snapshotCmd = (fw) => `node ${/\s/.test(fw) ? `"${fw}/tools/workspace.mjs"` : `${fw}/tools/workspace.mjs`} snapshot`;
 export const exportCmd = (fw) => snapshotCmd(fw).replace(/ snapshot$/, ' check-export');
+// handoff skill: prints a paste-safe PowerShell block; reads one file, writes nothing.
+export const packCmd = (fw) => `node ${/\s/.test(fw) ? `"${fw}/skills/handoff/pack.mjs"` : `${fw}/skills/handoff/pack.mjs`}`;
 function cmdSnapshot(message) {
   const ws = process.cwd();
   if (!existsSync(join(ws, CONFIG))) die('Run snapshot from inside a client workspace.');
