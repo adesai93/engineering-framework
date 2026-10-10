@@ -25,6 +25,7 @@ const model = opt('--model');
 const env = { ...process.env }; delete env.OPENSSL_CONF;
 const git = (...a) => execFileSync('git', a, { cwd: ROOT, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 const die = (msg) => { console.error(`review: ${msg}`); process.exit(2); };
+if (!Number.isInteger(max) || max < 1) die('--max must be a whole number, 1 or more');
 
 function codexCommand() {
   if (process.platform !== 'win32') return ['codex', []];
@@ -125,7 +126,8 @@ const res = spawnSync(bin, [...binArgs, ...codexArgs],
   { cwd: ROOT, env, input: prompt, encoding: 'utf8', timeout: 15 * 60 * 1000, maxBuffer: 64 << 20 });
 const log = `${res.stdout || ''}\n${res.stderr || ''}`;
 writeFileSync(join(dir, `round-${n}.log`), log);
-if (/exec_command failed|orchestrator_helper|Rejected\(/.test(log)) {
+// Codex's own error lines (timestamped), not the diff or files it echoes.
+if (/^\d{4}-\d\d-\d\dT\S+ ERROR codex_core::tools::router: error=exec_command failed/m.test(log)) {
   console.log(`review: WARNING Codex's commands were blocked, so it saw only the diff, not the repo. See ${join(dir, `round-${n}.log`)}.`);
 }
 if (res.error || res.status !== 0 || !existsSync(out)) {
