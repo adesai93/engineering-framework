@@ -5,7 +5,7 @@
 // backup, the secret scan and the client-free export check. Runs in CI.
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, readdirSync, mkdtempSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { tmpdir, homedir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { spawnSync, execFileSync } from 'node:child_process';
 import { ROOT } from './workspace.mjs';
@@ -181,6 +181,68 @@ test('skills: reference files ship beside SKILL.md for every tool; one the ruleb
   ok(r.code === 0, `update failed: ${r.out}`);
   ok(!existsSync(join(A, stale)) && !existsSync(join(A, edited)), 'dropped reference files still there');
   ok(copies(A, edited).some((t) => t.includes('MY EDIT')), 'edited dropped file not kept in .engfw-backup');
+});
+
+// Claude Code hooks: run each script the way Claude Code does (JSON on stdin).
+const hookEnv = { ...env }; delete hookEnv.CLAUDE_PROJECT_DIR;
+const runHook = (name, payload) => {
+  const r = spawnSync(process.execPath, [join(ROOT, 'tools/hooks', `${name}.mjs`)], { input: JSON.stringify(payload), env: hookEnv, encoding: 'utf8' });
+  return { code: r.status, out: r.stdout.trim(), err: r.stderr.trim() };
+};
+const denied = (r) => /"permissionDecision":"deny"/.test(r.out);
+
+test('hooks: wired into Claude settings (user hooks kept); CLAUDE.md drops only the hook-enforced rules', () => {
+  const sp = join(A, '.claude/settings.json'); const s = json(sp);
+  for (const ev of ['SessionStart', 'PreToolUse', 'PostToolUse']) ok((s.hooks?.[ev] || []).some((g) => g.hooks.some((h) => h.command.includes('/tools/hooks/'))), `${ev} hook missing`);
+  s.hooks.PostToolUse.push({ matcher: 'Bash', hooks: [{ type: 'command', command: 'echo mine' }] });
+  writeFileSync(sp, JSON.stringify(s, null, 2));
+  ok(wsmjs(['update', A]).code === 0, 'update failed');
+  const after = json(sp).hooks;
+  ok(after.PostToolUse.some((g) => g.hooks.some((h) => h.command === 'echo mine')), 'user hook lost on update');
+  ok(after.PreToolUse.filter((g) => g.hooks.some((h) => h.command.includes('/tools/hooks/'))).length === 1, 'our hook duplicated on update');
+  const claude = rd(join(A, 'CLAUDE.md')); const agents = rd(join(A, 'AGENTS.md'));
+  ok(!claude.includes('Never read a file over') && agents.includes('Never read a file over'), 'no-hooks block not split per tool');
+  ok(!/no-hooks/.test(claude + agents), 'marker left in output');
+  ok(/^@NOW\.md$/m.test(claude) && claude.includes('## Isolation'), 'CLAUDE.md missing team rules or NOW.md import');
+});
+
+test('hooks: writes only inside the workspace and repos, never the rulebook; long files read in parts', () => {
+  const w = (p) => runHook('guard-tool', { tool_name: 'Write', tool_input: { file_path: p }, cwd: A });
+  ok(!denied(w(join(A, 'projects/x/notes.md'))), 'write inside the workspace was denied');
+  ok(!denied(w('projects/x/relative.md')), 'relative write inside the workspace was denied');
+  ok(denied(w(join(ROOT, 'agents/team.md'))), 'rulebook write allowed');
+  ok(denied(w(join(B, 'context.md'))), "another client's workspace write allowed");
+  ok(!denied(w(join(homedir(), '.claude', 'plans', 'p.md'))), 'Claude Code plan file denied');
+  const long = join(A, 'research/long.md'); mkdirSync(join(A, 'research'), { recursive: true });
+  writeFileSync(long, Array.from({ length: 400 }, (_, i) => `line ${i}`).join('\n'));
+  ok(denied(runHook('guard-tool', { tool_name: 'Read', tool_input: { file_path: long }, cwd: A })), 'whole read of a 400-line file allowed');
+  ok(!denied(runHook('guard-tool', { tool_name: 'Read', tool_input: { file_path: long, offset: 320, limit: 80 }, cwd: A })), 'partial read denied');
+  ok(!denied(runHook('guard-tool', { tool_name: 'Read', tool_input: { file_path: join(A, 'context.md') }, cwd: A })), 'short read denied');
+  rmSync(long);
+});
+
+test('hooks: a secret or a malformed inventory line just written is sent back to the agent', () => {
+  const f = join(A, 'projects/x/notes.md'); mkdirSync(join(A, 'projects/x'), { recursive: true });
+  writeFileSync(f, `key: ${'AKIA'}ABCDEFGHIJKLMNOP\n`);
+  const r = runHook('check-write', { tool_name: 'Write', tool_input: { file_path: f, content: '' }, cwd: A });
+  ok(/"decision":"block"/.test(r.out) && /AWS access key id/.test(r.out) && !r.out.includes('ABCDEFGHIJKLMNOP'), `secret not flagged (or echoed): ${r.out}`);
+  rmSync(f);
+  const inv = join(A, 'inventory.md');
+  const good = '- prd · vnet · vnet-a · sub/rg · 10.0.0.0/16 · net team · iac/net · az graph · 2026-10-10';
+  ok(runHook('check-write', { tool_name: 'Edit', tool_input: { file_path: inv, new_string: good }, cwd: A }).out === '', 'good inventory line flagged');
+  const bad = runHook('check-write', { tool_name: 'Edit', tool_input: { file_path: inv, new_string: '- prd vnet vnet-a 10.0.0.0/16' }, cwd: A });
+  ok(/"decision":"block"/.test(bad.out) && /9 fields/.test(bad.out), `bad inventory line passed: ${bad.out}`);
+});
+
+test('hooks: session start flags memory files over their limit and a stale workspace, silent otherwise', () => {
+  ok(runHook('session-start', { cwd: A }).out === '', 'noisy on a healthy workspace');
+  const now = join(A, 'NOW.md'); const before = readFileSync(now, 'utf8');
+  appendFileSync(now, Array.from({ length: 120 }, (_, i) => `- item ${i}`).join('\n'));
+  const cfgPath = join(A, '.engineering-framework.json'); const cfgText = readFileSync(cfgPath, 'utf8');
+  writeFileSync(cfgPath, JSON.stringify({ ...JSON.parse(cfgText), version: '0.0.1' }));
+  const r = runHook('session-start', { cwd: A }).out;
+  ok(/NOW\.md is \d+ lines/.test(r) && /tidy/.test(r) && /v0\.0\.1/.test(r), `session start: ${r}`);
+  writeFileSync(now, before); writeFileSync(cfgPath, cfgText);
 });
 
 test('snapshot: saves, says when nothing changed, and fails loudly instead of claiming "nothing new"', () => {

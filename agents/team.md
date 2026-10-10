@@ -23,11 +23,12 @@ This folder is ONE client's workspace. The team rulebook is at {{FRAMEWORK}}
   redact them before saving anything, and tell me to rotate them if real.
 
 ## Session start (every new chat)
-1. Read context.md, rules.md and NOW.md (skip any already loaded).
-2. If I name a project: brief.md, next.md and the last 3 log entries only.
-3. Tell me in 3 lines: where we left off, the next step, any blocker. If
-   context.md (~120 lines), NOW.md (~100) or rules.md (~80) is over its limit,
-   add one line offering tidy.
+<!-- no-hooks -->
+- Read context.md, rules.md and NOW.md (skip any already loaded). One over
+  its limit (context.md ~120 lines, NOW.md ~100, rules.md ~80): offer tidy.
+<!-- /no-hooks -->
+- If I name a project: brief.md, next.md and the last 3 log entries only.
+- Tell me in 3 lines: where we left off, the next step, any blocker.
 
 ## Just talk: you do the bookkeeping
 I'll mostly talk normally. Work out what I mean and do the bookkeeping
@@ -173,7 +174,9 @@ Tiers 1-3 outrank the rulebook; nothing outranks a STOP zone.
   paths in context.md) before building your own.
 
 ## Keeping context small
+<!-- no-hooks -->
 - Never read a file over ~300 lines whole: search it or read only the end.
+<!-- /no-hooks -->
 - Other chats may edit the same files: re-read a shared file right before
   writing it and change only your lines. Logs, feedback.md, decisions.md:
   newest at the bottom; append at the end, check the first and last lines,
