@@ -16,6 +16,7 @@ const args = process.argv.slice(2);
 const opt = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
 const only = opt('--only')?.split(',');
 const parallel = Number(opt('--parallel') || 4);
+const verbose = args.includes('--verbose'); // print every check, not just failures
 
 const fixture = JSON.parse(readFileSync(join(ROOT, 'tools/sim/fixture.json'), 'utf8'));
 let { scenarios } = JSON.parse(readFileSync(join(ROOT, 'tools/sim/scenarios.json'), 'utf8'));
@@ -23,11 +24,12 @@ if (only) scenarios = scenarios.filter((s) => only.includes(s.id));
 // Built at run time so no secret-shaped string is stored in the repo.
 const FAKE_SAS = `https://stcontosodataprd001.blob.core.windows.net/logs?sv=2024-11-04&sp=rw&${'si'}g=${'Xk3Jd9fQ2mN8vLp4R7tYwZ1a'}BcDeFg%3D`;
 
-const env = { ...process.env }; delete env.OPENSSL_CONF;
-const sh = (cmd, a, cwd) => execFileSync(cmd, a, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' });
 const run = (stamp) => join(tmpdir(), `engfw-sim-${stamp}`);
 const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const out = run(stamp); mkdirSync(out, { recursive: true });
+// Test workspaces get their own registry and leave the rulebook's git hooks and config alone.
+const env = { ...process.env, ENGFW_TEST: '1', ENGFW_REGISTRY: join(out, 'registry.json'), ENGFW_NO_FETCH: '1' }; delete env.OPENSSL_CONF;
+const sh = (cmd, a, cwd) => execFileSync(cmd, a, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' });
 
 function seed(dir) {
   sh(process.execPath, [join(ROOT, 'tools/workspace.mjs'), 'new', fixture.client, dir, '--tools', 'claude'], ROOT);
@@ -69,16 +71,26 @@ const mdText = (dir) => {
 function check(c, dir, reply, before) {
   switch (c.type) {
     case 'no-workspace-changes': {
+      // Uncommitted changes AND new commits (an agent could change files, then snapshot them).
       const st = sh('git', ['status', '--porcelain'], dir).split('\n').filter((l) => l && !l.includes('.claude/'));
+      if (sh('git', ['rev-parse', 'HEAD'], dir).trim() !== before.head) {
+        st.push(`new commit(s): ${sh('git', ['log', '--oneline', `${before.head}..HEAD`], dir).trim().split('\n').join(', ')}`);
+      }
       return [st.length === 0, st.length ? `changed: ${st.join(', ')}` : ''];
     }
     case 'path-unchanged': {
-      const st = sh('git', ['status', '--porcelain', '--', c.path], dir).trim();
+      // Uncommitted changes and committed ones since the scenario started.
+      const st = [sh('git', ['status', '--porcelain', '--', c.path], dir).trim(),
+        sh('git', ['diff', '--name-only', before.head, 'HEAD', '--', c.path], dir).trim()].filter(Boolean).join('\n');
       return [!st, st ? `changed under ${c.path}: ${st.replace(/\n/g, ', ')}` : ''];
     }
     case 'file-matches': {
       const p = join(dir, c.file); const ok = existsSync(p) && new RegExp(c.regex, 'i').test(readFileSync(p, 'utf8'));
       return [ok, ok ? '' : `${c.file} lacks /${c.regex}/`];
+    }
+    case 'file-not-matches': {
+      const p = join(dir, c.file); const bad = existsSync(p) && new RegExp(c.regex, 'i').test(readFileSync(p, 'utf8'));
+      return [!bad, bad ? `${c.file} has /${c.regex}/` : ''];
     }
     case 'nowhere-matches': { const hit = new RegExp(c.regex).test(mdText(dir)); return [hit === (c.expect ?? false), hit ? `found /${c.regex}/ in workspace files` : '']; }
     case 'reply-matches': { const ok = new RegExp(c.regex, 'im').test(reply); return [ok, ok ? '' : `reply lacks /${c.regex}/`]; }
@@ -92,13 +104,19 @@ function check(c, dir, reply, before) {
       if (existsSync(join(dir, c.dir))) walk(join(dir, c.dir), '');
       return [found.length > 0, found.length ? '' : `no file under ${c.dir} matching /${c.regex}/`];
     }
+    case 'export-clean': {
+      // A report the agent wrote must pass the deterministic client-free check.
+      const found = existsSync(join(dir, c.dir)) ? readdirSync(join(dir, c.dir)).filter((f) => new RegExp(c.regex).test(f)) : [];
+      if (!found.length) return [false, `no file in ${c.dir} matching /${c.regex}/`];
+      try { sh(process.execPath, [join(ROOT, 'tools/workspace.mjs'), 'check-export', `${c.dir}/${found[0]}`], dir); return [true, '']; } catch (e) { return [false, `check-export failed on ${found[0]}: ${String(e.stdout).trim().split('\n').slice(0, 3).join(' | ')}`]; }
+    }
     case 'git-log-matches': {
       const log = sh('git', ['log', '--oneline', '-10'], dir); const ok = new RegExp(c.regex, 'i').test(log);
       return [ok, ok ? '' : `no commit matching /${c.regex}/`];
     }
     case 'new-project': {
       const now = readdirSync(join(dir, 'projects')).filter((d) => d !== '_new');
-      const added = now.filter((d) => !before.includes(d)); return [added.length > 0, added.length ? '' : 'no project folder created'];
+      const added = now.filter((d) => !before.projects.includes(d)); return [added.length > 0, added.length ? '' : 'no project folder created'];
     }
     default: return [false, `unknown check ${c.type}`];
   }
@@ -106,7 +124,9 @@ function check(c, dir, reply, before) {
 
 async function scenario(s) {
   const dir = join(out, s.id); seed(dir);
-  const before = readdirSync(join(dir, 'projects'));
+  // Scenario-specific setup: extra or replaced files (e.g. a stale git lock) after the fixture commit.
+  for (const [rel, content] of Object.entries(s.files || {})) { const p = join(dir, rel); mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, content); }
+  const before = { projects: readdirSync(join(dir, 'projects')), head: sh('git', ['rev-parse', 'HEAD'], dir).trim() };
   let reply = ''; let cost = 0;
   for (const [i, p] of s.prompts.entries()) {
     const r = await claude(dir, p.replaceAll("{{FAKE_SAS}}", FAKE_SAS), i > 0 && s.continue, s.permissionMode, s.allow);
@@ -114,7 +134,8 @@ async function scenario(s) {
   }
   const results = s.checks.map((c) => check(c, dir, reply, before));
   writeFileSync(join(out, `${s.id}.reply.md`), reply);
-  return { id: s.id, pass: results.every(([ok]) => ok), why: results.filter(([ok]) => !ok).map(([, w]) => w).join('; '), cost };
+  const detail = s.checks.map((c, i) => `      ${results[i][0] ? 'ok  ' : 'FAIL'} ${c.type}${c.regex ? ` /${c.regex}/` : ''}${c.file ? ` ${c.file}` : ''}${results[i][1] ? ` -> ${results[i][1]}` : ''}`).join('\n');
+  return { id: s.id, pass: results.every(([ok]) => ok), why: results.filter(([ok]) => !ok).map(([, w]) => w).join('; '), cost, detail };
 }
 
 if (!existsSync(join(ROOT, '.git'))) { console.error('Run from a rulebook git clone.'); process.exit(1); }
@@ -122,7 +143,7 @@ try { sh('claude', ['--version'], ROOT); } catch { console.error('Claude Code CL
 console.log(`Running ${scenarios.length} scenario(s), ${parallel} at a time, in ${out}\n`);
 const queue = [...scenarios]; const results = [];
 await Promise.all(Array.from({ length: Math.min(parallel, queue.length) }, async () => {
-  while (queue.length) { const s = queue.shift(); const r = await scenario(s); results.push(r); console.log(`${r.pass ? 'PASS' : 'FAIL'}  ${r.id.padEnd(28)} $${r.cost.toFixed(2)}${r.why ? `  ${r.why}` : ''}`); }
+  while (queue.length) { const s = queue.shift(); const r = await scenario(s); results.push(r); console.log(`${r.pass ? 'PASS' : 'FAIL'}  ${r.id.padEnd(28)} $${r.cost.toFixed(2)}${r.why ? `  ${r.why}` : ''}${verbose ? `\n${r.detail}` : ''}`); }
 }));
 const failed = results.filter((r) => !r.pass);
 const total = results.reduce((a, r) => a + r.cost, 0);
