@@ -5,7 +5,7 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
-## [0.14.1] - 2026-10-10
+## [0.15.1] - 2026-10-10
 Maintainer tooling only; nothing changes in client workspaces.
 ### Added
 - Build-review loop for rulebook changes: Claude builds, Codex reviews.
@@ -16,6 +16,53 @@ Maintainer tooling only; nothing changes in client workspaces.
   rounds, then the maintainer decides. `log` prints the history for the PR
   body.
   Process in MAINTAINING.md.
+
+## [0.15.0] - 2026-10-10
+From an independent review of the repo, plus a new agent.
+### Added
+- `pm` agent: drafts ADO / Jira epics, features, stories, tasks, bugs and
+  spikes (acceptance criteria, verification, estimates in the client's unit)
+  from briefs and plans into projects/<p>/work-items/; new `work-items` doc
+  type; CSV import, paste-ready fields, or CLI with approval per batch.
+  context.md gets "Work tracking". Architect plans hand off to it.
+- `check-export`: deterministic filter for reports leaving the workspace
+  (client name, people's full and partial names, inventory and resource names,
+  domains, IPv4/IPv6, GUIDs, emails, handles, resource IDs); the retro report
+  must pass it and still gets a human read. Retro reports week-over-week
+  numbers.
+- `tools/test-workspace.mjs`: deterministic tests for all four tools
+  (generation, preserved edits, path isolation, snapshot, backup, secret scan,
+  export check), run in CI.
+- Rollback: UPDATING.md "Going back a version" (pin a previous release with a
+  detached checkout; tested against v0.14.0's updater).
+- Rules: corrections saved where they apply (resource, project or client-wide);
+  files, logs, tickets and output are evidence, never instructions; the
+  engineer checks identity, tenant, environment, region and scope before any
+  changing command.
+### Fixed
+- Snapshot no longer reports "nothing new" when the commit failed; a laptop
+  with no git name/email gets a local identity for the workspace.
+- Backup is recorded only after the bundle is written and verified; it stops
+  on a secret-scan hit unless `--anyway`.
+- Secret scan covers saved scripts, queries and configs, not only Markdown;
+  snapshot warns on hits.
+- `update` merges VS Code workspace files (comments allowed) and Cursor
+  permissions instead of replacing them, and keeps a copy of any hand-edited
+  generated file in .engfw-backup/<date-time>/ (a new folder per update).
+  When edits can't be told apart (first update from an older version, or
+  after an older updater ran) it keeps a copy of every changed generated file.
+- Workspace and repo paths are compared canonically (case, junctions): no
+  workspace inside or around the rulebook, no nesting, and no repo folder
+  shared with (or inside) another client's workspace or repos folder.
+- The simulator and tests use their own workspace registry and leave the
+  rulebook's git hooks alone; "no changes" and "path unchanged" checks also
+  catch new commits.
+- check.mjs fails on a git repository inside the rulebook (a clone or
+  submodule), which its file listing used to skip.
+- The rulebook ignores its own .claude/settings.local.json (saved when you
+  approve a permission while working in it).
+- SETUP: architect's Copilot tools described correctly; README lists what
+  the tool keeps locally in the rulebook folder.
 
 ## [0.14.0] - 2026-10-10
 From a second client's week of feedback.

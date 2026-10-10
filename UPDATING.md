@@ -68,6 +68,35 @@ retro, so it stays identical everywhere:
   `git -C <rulebook> config engfw.maintainer true`, then
   `git -C <rulebook> config --unset remote.origin.pushurl`.
 
+## Going back a version
+If a new version misbehaves on a client laptop, pin the previous release until
+it's fixed (your notes aren't touched). This works with any older version's
+updater, because a pinned (detached) checkout has nothing newer to compare to.
+
+First snapshot each workspace (older updaters don't keep hand edits to
+generated files; the snapshot keeps them in the workspace's local history),
+from the workspace folder:
+```bash
+node ~/engineering-framework/tools/workspace.mjs snapshot "before rollback"
+```
+Then pin the previous release:
+```bash
+git -C ~/engineering-framework log --oneline -5 origin/main
+git -C ~/engineering-framework switch --detach <previous release commit>
+node ~/engineering-framework/tools/workspace.mjs refresh
+```
+Log what went wrong (feedback: ...). To move forward again once the fix is on
+main:
+```bash
+git -C ~/engineering-framework switch main
+node ~/engineering-framework/tools/workspace.mjs upgrade
+```
+Hand edits to generated agent files are kept in each workspace's
+.engfw-backup/<date-time>/ before an update replaces them (and copies of every
+changed generated file when edits can't be told apart, e.g. the first update
+from an older version); VS Code workspace files and Cursor permissions are
+merged, not replaced.
+
 ## If something goes wrong
 - "Repository not found" / "Authentication failed": the client account is
   the active one. Set engfw.githubUser (above) and run `upgrade`, or use the

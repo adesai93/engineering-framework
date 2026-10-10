@@ -56,7 +56,10 @@ Add them per workspace so they stay with that client:
   `[mcp_servers.microsoft-learn]` then `url = "https://learn.microsoft.com/api/mcp"`
 
 ## Backups
-Each workspace is the only copy of that client's memory. Once per client:
+Each workspace is the only copy of that client's memory. A backup is
+recorded only once the bundle is written and verified, and it stops if the
+secret scan finds something (fix it, or `--anyway` for a false alarm).
+Once per client:
 `node <rulebook>/tools/workspace.mjs backup <workspace> --to <client-approved folder>`
 (e.g. the client's OneDrive/SharePoint or an encrypted drive); after that just
 `backup <workspace>` (or tell the agent "back up"). doctor warns after 7 days
@@ -68,7 +71,7 @@ What gets generated in the workspace:
 | File | Purpose |
 |---|---|
 | CLAUDE.md -> AGENTS.md | team rules, loaded every chat |
-| .claude/agents/*.md | architect, engineer, security (read-only tools), retro |
+| .claude/agents/*.md | architect, engineer, security (read-only tools), pm, retro |
 | .claude/settings.json | rulebook (+ repos) in additionalDirectories; deny Edit on the rulebook |
 
 Set up:
@@ -77,7 +80,7 @@ Set up:
    additionalDirectories setting only applies after the folder is trusted.
 
 Check it works:
-- `/agents` lists architect, engineer, security, retro; `/skills` lists the skills.
+- `/agents` lists architect, engineer, security, pm, retro; `/skills` lists the skills.
 - `/memory` shows CLAUDE.md / AGENTS.md loaded.
 - Say "status": it summarises NOW.md without asking where things are.
 
@@ -100,7 +103,7 @@ What gets generated in the workspace:
 | File | Purpose |
 |---|---|
 | .github/copilot-instructions.md | team rules, added to every chat request |
-| .github/agents/*.agent.md | architect, engineer, security, retro, with handoff buttons |
+| .github/agents/*.agent.md | architect, engineer, security, pm, retro, with handoff buttons |
 | <client>.code-workspace | opens workspace + rulebook (read-only); turns on instruction files; turns off AGENTS.md (avoids loading the rules twice) |
 
 Set up:
@@ -112,7 +115,7 @@ Set up:
    files and run commands.
 
 Check it works:
-- The Agent dropdown in the Chat view lists architect, engineer, security, retro.
+- The Agent dropdown in the Chat view lists architect, engineer, security, pm, retro.
 - Say "status" with the default agent: it summarises NOW.md.
 - In the explorer, rulebook files show a lock (read-only).
 
@@ -132,8 +135,9 @@ Gotchas:
   pinned for you. To pin one, add `model: ['<cheaper model>', '<fallback>']`
   to that agent in the RULEBOOK's agents/ (via the weekly retro), using names
   from your model picker; the first available one is used.
-- Security and architect are read-only in Copilot (tool list), can't start
-  further agents, and retro only runs when you ask.
+- In Copilot, security is read-only (tool list); the architect can edit (it
+  writes plans and ADRs) but has no terminal; neither can start further
+  agents; retro only runs when you ask.
 - Something not loading? "Developer: Policy Diagnostics" shows org policies
   in effect (agent mode, MCP, models); the Chat Debug view shows which
   instructions, agents and skills actually loaded.
@@ -146,7 +150,7 @@ What gets generated in the workspace:
 | File | Purpose |
 |---|---|
 | AGENTS.md | team rules (Cursor reads it natively; shows as "AGENTS" under Rules) |
-| .cursor/agents/*.md | architect, engineer, security (readonly), retro |
+| .cursor/agents/*.md | architect, engineer, security (readonly), pm, retro |
 | .cursor/cli.json | denies writes to the rulebook (applies to the Cursor CLI) |
 | <client>.code-workspace | opens workspace + rulebook (rulebook read-only) |
 
@@ -218,8 +222,8 @@ What gets generated in the workspace:
 |---|---|
 | AGENTS.md | team rules (Codex reads it natively) |
 | .agents/skills/<name>/SKILL.md | the skills (onboard, update-team, check-setup are `$skill`-only) |
-| .codex/agents/*.toml | architect, engineer, security (read-only sandbox), retro |
-| .codex/rules/engineering-framework.rules | pre-approves ONLY the local snapshot command |
+| .codex/agents/*.toml | architect, engineer, security (read-only sandbox), pm, retro |
+| .codex/rules/engineering-framework.rules | pre-approves ONLY the local snapshot and the read-only check-export |
 
 Set up:
 1. Install Codex (CLI or IDE extension) and sign in.

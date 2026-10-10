@@ -21,6 +21,7 @@ jobs:
         with:
           node-version: 22
       - run: node tools/check.mjs
+      - run: node tools/test-workspace.mjs
 
   # main changes only through pull requests (from the maintainer machine).
   # A commit pushed straight to main (e.g. from a client laptop) fails here,

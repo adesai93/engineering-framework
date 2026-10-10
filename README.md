@@ -54,9 +54,14 @@ On each client laptop: `git pull` in the rulebook (or tell the agent "update
 the team"). A git hook refreshes every workspace on that machine (generated
 files only, never your notes). Then start new chats. See UPDATING.md.
 
-The rulebook stays portable: on client laptops it is read-only. Claude Code is
-denied edits to it, VS Code marks it read-only, and `upgrade` refuses to run if
-it has local changes or commits (it shows them and how to drop them).
+The rulebook stays portable: on client laptops it is read-only for agents.
+Claude Code is denied edits to it, VS Code marks it read-only, and `upgrade`
+refuses to run if it has local changes or commits (it shows them and how to
+drop them). The tool itself keeps three local-only things there, none of them
+tracked by git: the list of this laptop's workspaces (.workspaces.local.json),
+the pull hook (.git/hooks/post-merge) and git settings (pull.ff, the push
+block, engfw.githubUser). Agent tools may also save a git-ignored
+.claude/settings.local.json if you approve a permission while working there.
 
 ## Client code repos
 Clone them into the workspace's `repos/`, or point the workspace at the folder

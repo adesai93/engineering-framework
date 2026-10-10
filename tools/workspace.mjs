@@ -7,10 +7,11 @@
 // folders (default: <workspace>/repos). Never point it at another client's code.
 // A workspace holds ONE client's memory (context, NOW, projects, logs) and the
 // agent files generated from agents/*.md. Client data never enters this repo.
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, cpSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, cpSync, rmSync, realpathSync, statSync } from 'node:fs';
 import { join, dirname, resolve, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const TEMPLATE = join(ROOT, 'workspace-template');
@@ -21,6 +22,18 @@ const normalize = (s) => s.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
 const read = (p) => normalize(readFileSync(p, 'utf8'));
 const slash = (p) => resolve(p).replace(/\\/g, '/');
 const asList = (r) => (r ? (Array.isArray(r) ? r : [r]) : []); // configs before v0.10 hold one string
+const sha = (s) => createHash('sha256').update(normalize(s)).digest('hex').slice(0, 16);
+
+// Canonical path for containment checks: follows junctions/symlinks on the part
+// that exists, and ignores case on Windows (C:\Foo and c:\foo are one folder).
+function canon(p) {
+  let r = resolve(p); const rest = [];
+  while (!existsSync(r) && dirname(r) !== r) { rest.unshift(basename(r)); r = dirname(r); }
+  try { r = realpathSync.native(r); } catch { /* keep as is */ }
+  const out = [r, ...rest].join('/').replace(/\\/g, '/').replace(/\/+/g, '/').replace(/\/$/, '');
+  return process.platform === 'win32' ? out.toLowerCase() : out;
+}
+const within = (child, parent) => { const c = canon(child); const p = canon(parent); return c === p || c.startsWith(`${p}/`); };
 
 // Child processes run without OPENSSL_CONF: a broken machine-wide OpenSSL config
 // stops Node (and some git builds) before any script runs.
@@ -138,7 +151,8 @@ export function render({ framework, tools, client, repos, toolchains }, root = R
     // Pre-approve ONLY the local workspace snapshot; everything else keeps its normal approval.
     const [nodeBin, script] = ['node', `${fw}/tools/workspace.mjs`];
     out['.codex/rules/engineering-framework.rules'] = `# ${note('tools/workspace.mjs').replace(/^<!-- | -->$/g, '')}\n`
-      + `prefix_rule(pattern=[${tomlStr(nodeBin)}, ${tomlStr(script)}, "snapshot"], decision="allow", justification="Local snapshot of this client workspace; refuses if a git remote exists; never pushes.")\n`;
+      + `prefix_rule(pattern=[${tomlStr(nodeBin)}, ${tomlStr(script)}, "snapshot"], decision="allow", justification="Local snapshot of this client workspace; refuses if a git remote exists; never pushes.")\n`
+      + `prefix_rule(pattern=[${tomlStr(nodeBin)}, ${tomlStr(script)}, "check-export"], decision="allow", justification="Read-only client-free check of a report before it leaves this workspace.")\n`;
   }
   // Cursor reads AGENTS.md natively for the team rules; subagents go in .cursor/agents.
   if (tools.includes('cursor')) {
@@ -166,6 +180,8 @@ export function render({ framework, tools, client, repos, toolchains }, root = R
         // and nothing chained after it (no quotes, ;, &, |, $ or backticks inside).
         'chat.tools.terminal.autoApprove': {
           [`/^${snapshotCmd(fw).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\//g, '\\/')}( "[\\w .:()#-]*")?$/`]: true,
+          // ...and the read-only client-free check on a report in feedback/.
+          [`/^${exportCmd(fw).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\//g, '\\/')} feedback\\/[\\w.-]+\\.md$/`]: true,
         },
       },
     }, null, 2) + '\n';
@@ -196,9 +212,67 @@ function writeClaudeSettings(ws, fw, repos) {
   // chained command separately, so nothing can ride along with it).
   const allow = new Set(s.permissions.allow || []);
   allow.add(`Bash(${snapshotCmd(fw)}:*)`);
+  allow.add(`Bash(${exportCmd(fw)}:*)`); // read-only client-free check
   s.permissions.allow = [...allow];
   mkdirSync(dirname(p), { recursive: true });
   writeFileSync(p, JSON.stringify(s, null, 2) + '\n');
+}
+
+// Generated files people also edit by hand: merged on update, never replaced.
+const MERGED = [/\.code-workspace$/, /^\.cursor\/cli\.json$/];
+// Hand edits to other generated files are kept here before they're replaced.
+const BACKUP_DIR = '.engfw-backup';
+// One folder per update run (date-time, plus -2, -3... if needed): never overwritten.
+function keepCopy(ws, rel, text, bk, note) {
+  if (!bk.dir) {
+    const base = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    let d = base; for (let i = 2; existsSync(join(ws, BACKUP_DIR, d)); i++) d = `${base}-${i}`;
+    bk.dir = d;
+  }
+  const p = join(ws, BACKUP_DIR, bk.dir, rel);
+  mkdirSync(dirname(p), { recursive: true });
+  writeFileSync(p, text);
+  if (note) console.log(`  NOTE ${rel} ${note}: your version is in ${BACKUP_DIR}/${bk.dir}/${rel}`);
+}
+// JSON with comments and trailing commas (VS Code's .code-workspace format) -> JSON.
+function stripJsonc(s) {
+  let out = ''; let inStr = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]; const n = s[i + 1];
+    if (inStr) { out += c; if (c === '\\') { out += n ?? ''; i++; } else if (c === '"') inStr = false; continue; }
+    if (c === '"') { inStr = true; out += c; continue; }
+    if (c === '/' && n === '/') { while (i < s.length && s[i] !== '\n') i++; out += '\n'; continue; }
+    if (c === '/' && n === '*') { i += 2; while (i < s.length && !(s[i] === '*' && s[i + 1] === '/')) i++; i++; continue; }
+    out += c;
+  }
+  return out.replace(/,(\s*[}\]])/g, '$1');
+}
+// Returns the merged file, or null to leave the file exactly as it is.
+function mergeSettings(rel, oldText, oursText, ws, bk) {
+  let mine;
+  try { mine = JSON.parse(oldText); } catch {
+    try { mine = JSON.parse(stripJsonc(oldText)); } catch {
+      console.log(`  SKIPPED ${rel}: it isn't valid JSON, so it was left exactly as it is (the rulebook's settings in it were NOT updated). Fix it, or delete it and run update again.`);
+      return null;
+    }
+    keepCopy(ws, rel, oldText, bk, 'had comments, which JSON can\'t keep; your settings were kept, the commented original');
+  }
+  const ours = JSON.parse(oursText);
+  const out = { ...mine, ...ours };
+  if (/\.code-workspace$/.test(rel)) {
+    // Our folders first (current paths), then any folder someone added.
+    const ourNames = new Set(ours.folders.map((f) => f.name));
+    const isOurs = (n = '') => ourNames.has(n) || / repos: /.test(n) || n === 'engineering-framework (rulebook)';
+    out.folders = [...ours.folders, ...(mine.folders || []).filter((f) => !isOurs(f.name))];
+    out.settings = { ...(mine.settings || {}) };
+    for (const [k, v] of Object.entries(ours.settings)) {
+      out.settings[k] = v && typeof v === 'object' && !Array.isArray(v) ? { ...(mine.settings?.[k] || {}), ...v } : v;
+    }
+  } else {
+    out.permissions = { ...(mine.permissions || {}) };
+    for (const [k, v] of Object.entries(ours.permissions)) out.permissions[k] = [...new Set([...(mine.permissions?.[k] || []), ...v])];
+  }
+  return JSON.stringify(out, null, 2) + '\n';
 }
 
 function install(ws, cfg) {
@@ -215,25 +289,43 @@ function install(ws, cfg) {
       }
     }
   }
-  for (const [rel, content] of Object.entries(files)) {
-    const p = join(ws, rel);
-    mkdirSync(dirname(p), { recursive: true });
-    writeFileSync(p, content);
-    console.log(`  wrote ${rel}`);
-  }
-  if (cfg.tools.includes('claude')) { writeClaudeSettings(ws, cfg.framework, cfg.repos); console.log('  wrote .claude/settings.json'); }
-  const commit = (() => { try { return gitOut(ROOT, ['rev-parse', '--short', 'HEAD']); } catch { return 'unknown'; } })();
-  // Merge with what's there: keep settings other commands own (backupDir, lastBackup).
   let prev = {};
   try { prev = JSON.parse(read(join(ws, CONFIG))); } catch { /* first install */ }
-  writeFileSync(join(ws, CONFIG), JSON.stringify({ ...prev, ...cfg, version: frameworkVersion(), commit }, null, 2) + '\n');
+  const commit = (() => { try { return gitOut(ROOT, ['rev-parse', '--short', 'HEAD']); } catch { return 'unknown'; } })();
+  // The recorded hashes say what WE last wrote. They can be trusted only if no
+  // other updater ran since: not on the first update from a version before edit
+  // tracking, nor after an older version's updater (e.g. during a rollback).
+  const trusted = !!(prev.generated && prev.generatedCommit && prev.generatedCommit === prev.commit);
+  const generated = {}; const bk = {}; let unsure = 0;
+  for (const [rel, generatedContent] of Object.entries(files)) {
+    const p = join(ws, rel);
+    mkdirSync(dirname(p), { recursive: true });
+    let content = generatedContent;
+    const old = existsSync(p) ? read(p) : null;
+    if (old !== null && MERGED.some((re) => re.test(rel))) {
+      // Settings files people edit too: keep their entries, enforce ours.
+      content = mergeSettings(rel, old, generatedContent, ws, bk);
+      if (content === null) continue;
+    } else if (old !== null && old !== normalize(generatedContent)) {
+      if (!trusted) { keepCopy(ws, rel, old, bk); unsure++; } // can't tell: keep a copy of each
+      else if (!prev.generated[rel] || sha(old) !== prev.generated[rel]) keepCopy(ws, rel, old, bk, 'had local edits and was replaced');
+    }
+    writeFileSync(p, content);
+    generated[rel] = sha(content);
+    console.log(`  wrote ${rel}`);
+  }
+  if (unsure) console.log(`  NOTE couldn't tell whether ${unsure} generated file(s) had local edits (first update with edit tracking, or an older updater ran since), so copies are in ${BACKUP_DIR}/${bk.dir}/. Delete that folder if you never edited them.`);
+  if (cfg.tools.includes('claude')) { writeClaudeSettings(ws, cfg.framework, cfg.repos); console.log('  wrote .claude/settings.json'); }
+  // Merge with what's there: keep settings other commands own (backupDir, lastBackup).
+  writeFileSync(join(ws, CONFIG), JSON.stringify({ ...prev, ...cfg, version: frameworkVersion(), commit, generated, generatedCommit: commit }, null, 2) + '\n');
   remember(ws);
   installPullHook();
 }
 
 // This machine's workspaces, so `refresh` can update them all. Local only
 // (gitignored): paths never leave the laptop.
-const REGISTRY = join(ROOT, '.workspaces.local.json');
+// ENGFW_REGISTRY points tests and the simulator at their own list.
+const REGISTRY = process.env.ENGFW_REGISTRY || join(ROOT, '.workspaces.local.json');
 function known() {
   try { return JSON.parse(read(REGISTRY)); } catch { return []; }
 }
@@ -296,6 +388,13 @@ function rulebookState({ fetch = true } = {}) {
   return st;
 }
 
+// A deliberate rollback (UPDATING.md "Going back a version") is a detached
+// checkout of an older release: it has no upstream, so every updater version
+// (old ones included) accepts it; switching back to the branch ends it.
+function pinned() {
+  try { gitOut(ROOT, ['symbolic-ref', '-q', 'HEAD']); return false; } catch { return existsSync(join(ROOT, '.git')); }
+}
+
 // Workspaces must be generated from the released rulebook, never from a draft:
 // refuse on a client laptop if it has local edits, local commits or missed updates.
 function guardRulebook() {
@@ -304,6 +403,7 @@ function guardRulebook() {
   const problems = [];
   if (st.dirty) problems.push(`  uncommitted changes:\n${list(st.dirty)}`);
   if (st.ahead) problems.push(`  local commits not on main:\n${list(st.ahead)}`);
+  if (pinned()) console.log(`NOTE: rulebook pinned at ${st.commit} (rolled back on purpose; \`upgrade\` moves forward again).`);
   if (st.behind) problems.push(`  ${st.behind.split('\n').length} update(s) on main not pulled yet`);
   if (st.fetchError) console.log(`WARNING: couldn't check GitHub for updates. ${st.fetchError}`);
   if (!problems.length) return st;
@@ -328,6 +428,13 @@ function cmdUpgrade() {
     console.error('\nChanges belong in the weekly retro report, not here. To drop them:');
     console.error('  git -C <rulebook> stash   (keeps them aside)   or   git -C <rulebook> reset --hard @{u}   (drops them)');
     process.exit(1);
+  }
+  if (pinned()) {
+    // End a rollback: back onto the default branch, then pull as usual.
+    let branch = '';
+    try { branch = gitOut(ROOT, ['rev-parse', '--abbrev-ref', 'origin/HEAD']).replace(/^origin\//, ''); } catch { /* unknown */ }
+    if (!branch || !git(ROOT, ['switch', '-q', branch])) die('The rulebook is pinned to an older version (rollback). Run `git -C <rulebook> switch main`, then upgrade again.');
+    console.log(`Rollback ended: rulebook back on ${branch}.`);
   }
   try {
     execFileSync('git', ['pull', '--ff-only', '-q'], { cwd: ROOT, stdio: ['ignore', 'inherit', 'pipe'], env: { ...rulebookGitEnv(), ENGFW_NO_HOOK: '1' } });
@@ -371,6 +478,7 @@ env -u OPENSSL_CONF node "$ROOT/tools/workspace.mjs" refresh || {
 exit 0
 `;
 function installPullHook() {
+  if (process.env.ENGFW_TEST) return; // tests and the simulator leave the rulebook's git alone
   let hooks;
   try { hooks = resolve(ROOT, gitOut(ROOT, ['rev-parse', '--git-path', 'hooks'])); } catch { return; } // not a git clone
   const p = join(hooks, 'post-merge');
@@ -394,11 +502,43 @@ function git(ws, args) {
   try { execFileSync('git', args, { cwd: ws, stdio: 'ignore', env: CHILD_ENV }); return true; } catch { return false; }
 }
 
+// Commit everything in a workspace. Returns 'committed' or 'nothing'; THROWS on
+// failure, so "nothing to save" and "couldn't save" are never confused. A laptop
+// with no git name/email gets a local-only identity for this workspace.
+function commitAll(ws, msg) {
+  for (const [k, v] of [['user.name', 'engineering-framework'], ['user.email', 'workspace@localhost']]) {
+    try { gitOut(ws, ['config', '--get', k]); } catch { gitOut(ws, ['config', k, v]); }
+  }
+  gitOut(ws, ['add', '-A']);
+  if (!gitOut(ws, ['status', '--porcelain'])) return 'nothing';
+  gitOut(ws, ['commit', '-q', '-m', msg]);
+  return 'committed';
+}
+const gitErr = (e) => String(e.stderr || e.message || e).trim().split('\n').slice(-3).join(' ');
+
+// Client isolation on disk: a workspace never sits inside the rulebook (or holds
+// it), and its folders never overlap another workspace registered on this machine.
+function checkPaths(ws, repos) {
+  if (within(ws, ROOT) || within(ROOT, ws)) die('create the workspace OUTSIDE the framework repo (and not around it), so client data never lands in it');
+  for (const r of repos) if (within(r, ROOT)) die(`--repos ${r} is inside the rulebook: client code never goes there`);
+  const overlap = (a, b) => within(a, b) || within(b, a);
+  for (const other of known().filter((w) => canon(w) !== canon(ws) && existsSync(w))) {
+    if (overlap(ws, other)) die(`${ws} overlaps another workspace on this machine (${other}): one folder per client, never nested`);
+    let theirs = [];
+    try { theirs = asList(JSON.parse(read(join(other, CONFIG))).repos); } catch { /* unreadable config: root check only */ }
+    for (const t of theirs) if (overlap(ws, t)) die(`${ws} overlaps the repos folder of another workspace (${other}: ${t})`);
+    for (const r of repos) {
+      if (overlap(r, other)) die(`--repos ${r} overlaps another workspace (${other}): repos belong to one client`);
+      for (const t of theirs) if (overlap(r, t)) die(`--repos ${r} overlaps another client's repos folder (${t}, used by ${other}): repos belong to one client`);
+    }
+  }
+}
+
 function cmdNew(client, path, tools, repos, toolchains) {
   if (!client || !path) usage();
   if (!/^[a-z0-9][a-z0-9-]*$/.test(client)) die('client name: lowercase letters, digits and dashes (e.g. client-a)');
   const ws = resolve(path);
-  if (ws.startsWith(resolve(ROOT))) die('create the workspace OUTSIDE the framework repo, so client data never lands in it');
+  checkPaths(ws, repos);
   if (existsSync(ws) && readdirSync(ws).length) die(`${ws} already exists and is not empty`);
   guardRulebook();
   cpSync(TEMPLATE, ws, { recursive: true });
@@ -410,9 +550,10 @@ function cmdNew(client, path, tools, repos, toolchains) {
   console.log(`Creating workspace for ${client} at ${ws}`);
   install(ws, cfg);
   if (git(ws, ['init', '-q'])) {
-    git(ws, ['add', '-A']);
-    git(ws, ['commit', '-q', '-m', `Create ${client} workspace (engineering-framework v${frameworkVersion()})`]);
-    console.log('  git: initialised local history (no remote)');
+    try {
+      commitAll(ws, `Create ${client} workspace (engineering-framework v${frameworkVersion()})`);
+      console.log('  git: initialised local history (no remote)');
+    } catch (e) { console.log(`  WARNING git: history created but the first commit FAILED (${gitErr(e)}). Snapshots will fail until this is fixed.`); }
   }
   console.log('\nNext: open the WORKSPACE (not the rulebook, not a single repo) and say "onboard me":');
   if (tools.includes('claude')) console.log(`  Claude Code:      cd "${ws}" && claude`);
@@ -430,6 +571,7 @@ function cmdUpdate(path, repos, toolchains) {
   const cfg = JSON.parse(read(p));
   cfg.framework = slash(ROOT); // the framework may have moved
   const repoList = repos.length ? repos.map(slash) : asList(cfg.repos);
+  checkPaths(ws, repoList);
   console.log(`Updating ${cfg.client} workspace at ${ws} to v${frameworkVersion()}`);
   const tc = toolchains || cfg.toolchains;
   install(ws, { client: cfg.client, framework: cfg.framework, tools: cfg.tools, ...(repoList.length ? { repos: repoList } : {}), ...(tc ? { toolchains: tc } : {}) });
@@ -478,7 +620,8 @@ function cmdDoctor(path) {
     if (st.fetchError) fix(`Can't check GitHub: ${st.fetchError}`);
     if (st.dirty) fix('Rulebook has uncommitted changes: `git -C <rulebook> stash` (UPDATING.md).');
     if (st.ahead) fix('Rulebook has local commits not on main: `git -C <rulebook> reset --hard @{u}`.');
-    if (st.behind) fix(`Rulebook is ${st.behind.split('\n').length} update(s) behind: \`git -C <rulebook> pull\`.`);
+    if (pinned()) ok(`Rulebook pinned at ${st.commit} on purpose (rollback); \`upgrade\` moves forward`);
+    else if (st.behind) fix(`Rulebook is ${st.behind.split('\n').length} update(s) behind: \`git -C <rulebook> pull\`.`);
     if (!st.dirty && !st.ahead && !st.behind && !st.fetchError) ok('Rulebook matches main on GitHub');
     let hook = '';
     try { hook = read(join(resolve(ROOT, gitOut(ROOT, ['rev-parse', '--git-path', 'hooks'])), 'post-merge')); } catch { /* none */ }
@@ -526,8 +669,10 @@ function cmdDoctor(path) {
   else ok('No secrets found in workspace notes');
 }
 
-// Patterns for credentials that must never sit in workspace notes. Scans *.md
-// outside repos/ (client code has its own scanners) and .git.
+// Patterns for credentials that must never sit in workspace notes. Scans text
+// files (notes, saved scripts, queries, configs) outside repos/ (client code has
+// its own scanners) and .git.
+const SCANNED = /\.(md|txt|json|jsonc|ya?ml|ps1|psm1|psd1|sh|bash|tf|tfvars|bicep|kql|sql|csv|ini|conf|cfg|xml|py|js|ts)$|^\.env/i;
 const SECRET_PATTERNS = [
   ['Azure SAS signature', /[?&]sig=[A-Za-z0-9%+/=]{20,}/],
   ['Azure storage/service bus key', /(AccountKey|SharedAccessKey)=[A-Za-z0-9+/=]{20,}/],
@@ -545,7 +690,7 @@ export function scanSecrets(ws) {
       if (['.git', 'repos', 'node_modules'].includes(e.name)) continue;
       const p = join(dir, e.name);
       if (e.isDirectory()) { walk(p); continue; }
-      if (!e.name.endsWith('.md')) continue;
+      if (!SCANNED.test(e.name) || statSync(p).size > 2_000_000) continue;
       read(p).split('\n').forEach((l, i) => {
         for (const [kind, re] of SECRET_PATTERNS) if (re.test(l)) hits.push({ file: slash(p).slice(slash(ws).length + 1), line: i + 1, kind });
       });
@@ -558,7 +703,7 @@ export function scanSecrets(ws) {
 // Back up a workspace as ONE git bundle file into a folder the client approves
 // (e.g. their OneDrive/SharePoint, an encrypted drive). Commits pending changes
 // first (local only). Restore: git clone <bundle> <workspace path>.
-function cmdBackup(path, to) {
+function cmdBackup(path, to, anyway) {
   if (!path) usage();
   const ws = resolve(path);
   const p = join(ws, CONFIG);
@@ -569,18 +714,25 @@ function cmdBackup(path, to) {
   if (!existsSync(dir)) die(`${dir} does not exist`);
   const hits = scanSecrets(ws);
   if (hits.length) {
-    console.log(`WARNING: ${hits.length} possible secret(s) in the notes will be copied into this backup:`);
+    console.log(`${anyway ? 'WARNING' : 'STOPPED'}: ${hits.length} possible secret(s) in the workspace would be copied into this backup:`);
     for (const h of hits) console.log(`  ${h.file}:${h.line} (${h.kind})`);
-    console.log('  Remove them (and rotate if real), then back up again.');
+    if (!anyway) {
+      console.log('  Remove them and rotate any that were real (older snapshots still hold them: rotating is the fix).');
+      console.log('  If they are false alarms, back up with --anyway.');
+      process.exit(1);
+    }
   }
   const stamp = new Date().toISOString().slice(0, 10);
+  try { commitAll(ws, `backup ${stamp}`); } catch (e) { die(`couldn't commit the workspace before backing up, so NO backup was made: ${gitErr(e)}`); }
+  const file = join(dir, `${cfg.client}-workspace-${stamp}.bundle`);
+  try {
+    execFileSync('git', ['bundle', 'create', file, '--all'], { cwd: ws, stdio: ['ignore', 'ignore', 'pipe'], env: CHILD_ENV });
+    execFileSync('git', ['bundle', 'verify', '-q', file], { cwd: ws, stdio: ['ignore', 'ignore', 'pipe'], env: CHILD_ENV });
+  } catch (e) { die(`backup FAILED, nothing recorded as backed up: ${gitErr(e)}`); }
+  // Recorded only now, after the bundle exists and verifies.
   cfg.backupDir = dir; cfg.lastBackup = new Date().toISOString();
   writeFileSync(p, JSON.stringify(cfg, null, 2) + '\n');
-  git(ws, ['add', '-A']);
-  git(ws, ['commit', '-q', '-m', `backup ${stamp}`]);
-  const file = join(dir, `${cfg.client}-workspace-${stamp}.bundle`);
-  try { execFileSync('git', ['bundle', 'create', file, '--all'], { cwd: ws, stdio: ['ignore', 'ignore', 'pipe'], env: CHILD_ENV }); } catch (e) { die(`git bundle failed: ${String(e.stderr).trim()}`); }
-  console.log(`Backed up ${cfg.client} workspace to ${slash(file)}`);
+  console.log(`Backed up ${cfg.client} workspace to ${slash(file)} (verified)`);
   console.log(`Restore with: git clone "${slash(file)}" <workspace path>   (repos/ isn't included: client code lives in its own remotes)`);
 }
 
@@ -588,6 +740,7 @@ function cmdBackup(path, to) {
 // workspace notes. It never pushes, and refuses outright if the workspace has
 // a git remote, so client notes can't be sent anywhere by it.
 export const snapshotCmd = (fw) => `node ${/\s/.test(fw) ? `"${fw}/tools/workspace.mjs"` : `${fw}/tools/workspace.mjs`} snapshot`;
+export const exportCmd = (fw) => snapshotCmd(fw).replace(/ snapshot$/, ' check-export');
 function cmdSnapshot(message) {
   const ws = process.cwd();
   if (!existsSync(join(ws, CONFIG))) die('Run snapshot from inside a client workspace.');
@@ -595,9 +748,85 @@ function cmdSnapshot(message) {
   try { remotes = gitOut(ws, ['remote']); } catch { die('This workspace has no git history: run `update` on it once.'); }
   if (remotes) die(`REFUSED: this workspace has a git remote (${remotes.split('\n').join(', ')}), so a commit could later be pushed off this laptop. Remove it: git -C "${slash(ws)}" remote remove <name>`);
   const msg = (message || `snapshot ${new Date().toISOString().slice(0, 10)}`).replace(/[^\w .:/()#-]/g, '').slice(0, 120);
-  git(ws, ['add', '-A']);
-  if (!git(ws, ['commit', '-q', '-m', msg])) { console.log('Nothing new to snapshot.'); return; }
-  console.log(`Snapshot saved on this laptop only: ${gitOut(ws, ['log', '--oneline', '-1'])}`);
+  let result;
+  try { result = commitAll(ws, msg); } catch (e) { die(`Snapshot FAILED, nothing was saved: ${gitErr(e)}`); }
+  if (result === 'nothing') console.log('Nothing new to snapshot (everything was already saved).');
+  else console.log(`Snapshot saved on this laptop only: ${gitOut(ws, ['log', '--oneline', '-1'])}`);
+  const hits = scanSecrets(ws);
+  if (hits.length) {
+    console.log(`WARNING: ${hits.length} possible secret(s) in the workspace (now in its history too). Remove them and rotate any that are real:`);
+    for (const h of hits) console.log(`  ${h.file}:${h.line} (${h.kind})`);
+  }
+}
+
+// Deterministic client-free check for anything leaving the workspace (the weekly
+// retro report): flags this client's own identifiers (client name, people, names
+// from inventory/context, domains) and identifier-shaped strings (IPs, GUIDs,
+// emails, resource IDs). Run from the workspace: check-export <file>. Exit 1 on hits.
+export function exportTerms(ws, client) {
+  const terms = new Set([client]);
+  const text = (f) => (existsSync(join(ws, f)) ? read(join(ws, f)) : '');
+  const ctx = text('context.md'); const inv = text('inventory.md');
+  const notes = [ctx, inv, text('rules.md'), text('decisions.md')].join('\n');
+  // People: the full name and each part of it ("Jane Smith", "Jane", "Smith").
+  const people = ctx.split(/^## People\s*$/m).slice(1).map((s) => s.split(/^## /m)[0]).join('\n');
+  for (const l of people.split('\n')) {
+    const n = l.replace(/^[-*]\s*/, '').split(/\s+[—–-]\s+|\s*\(/)[0].trim();
+    if (!/^[A-Z][\w'.-]+( [A-Z][\w'.-]+)*$/.test(n)) continue;
+    terms.add(n);
+    for (const part of n.split(' ')) if (part.length >= 3) terms.add(part);
+  }
+  for (const l of inv.split('\n')) { const cols = l.replace(/^- /, '').split(' · '); if (cols.length >= 4) terms.add(cols[2].split(' (')[0].trim()); }
+  // Resource-style names (two or more dashes), wherever the notes mention them.
+  for (const m of notes.matchAll(/\b[a-z][a-z0-9]*(?:-[a-z0-9]+){2,}\b/g)) terms.add(m[0]);
+  // Hostnames and their domains (acme.com, vpn.acme.co.uk), minus vendor domains;
+  // a vendor host's tenant label counts (acme.atlassian.net -> acme).
+  for (const m of notes.matchAll(HOST_RE)) {
+    const host = m[0].toLowerCase(); const labels = host.split('.');
+    const n = /\.(co|com|org|net|gov|ac)\.[a-z]{2}$/.test(host) ? 3 : 2;
+    const domain = labels.slice(-n).join('.');
+    if (!VENDOR_DOMAINS.has(domain)) { terms.add(host); terms.add(domain); }
+    else if (labels.length > n && labels[0].length >= 3 && !/^(www|login|portal|docs|api|app|learn)$/.test(labels[0])) terms.add(labels[0]);
+  }
+  return [...terms].filter((t) => t && t.length >= 3 && !/^(e\.g|i\.e|n\/a|-)$/i.test(t));
+}
+const HOST_RE = /\b(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+(?:com|net|org|io|co|uk|us|ca|au|de|fr|nl|in|eu|local|corp|internal|lan|cloud|ai|dev|app|gov|edu|biz|info)\b/gi;
+const VENDOR_DOMAINS = new Set(['microsoft.com', 'onmicrosoft.com', 'windows.net', 'azure.com', 'azure.net', 'azurewebsites.net', 'azure-api.net',
+  'visualstudio.com', 'office.com', 'sharepoint.com', 'live.com', 'amazonaws.com', 'amazon.com', 'aws.com', 'google.com', 'googleapis.com',
+  'github.com', 'githubusercontent.com', 'hashicorp.com', 'terraform.io', 'atlassian.net', 'atlassian.com', 'service-now.com', 'servicenow.com',
+  'wiz.io', 'datadoghq.com', 'jfrog.io', 'octopus.app', 'example.com']);
+// Identifier shapes. The optional third item weeds out look-alikes.
+const EXPORT_PATTERNS = [
+  ['IPv4 address', /\b(?:\d{1,3}\.){3}\d{1,3}(?:\/\d{1,2})?\b/],
+  ['IPv6 address', /\b(?:[0-9a-f]{1,4}:){3,7}[0-9a-f]{1,4}\b|\b[0-9a-f]{1,4}(?::[0-9a-f]{1,4})*::(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4})*)?/i, (m) => /\d/.test(m)],
+  ['GUID', /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i],
+  ['email address', /\b[\w.+-]+@[\w-]+\.[\w.-]+\b/],
+  ['@handle', /(?:^|\s)@[A-Za-z][\w.-]{2,}/],
+  ['Azure resource ID', /\/subscriptions\/[^\s/]+\/resourceGroups\//i],
+  ['AWS ARN / account', /\barn:aws:|\b\d{12}\b/],
+];
+function cmdCheckExport(file) {
+  if (!file) usage();
+  const ws = process.cwd();
+  if (!existsSync(join(ws, CONFIG))) die('Run check-export from inside the client workspace.');
+  if (!existsSync(file)) die(`${file} not found`);
+  const { client } = JSON.parse(read(join(ws, CONFIG)));
+  const terms = exportTerms(ws, client);
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const hits = [];
+  read(file).split('\n').forEach((l, i) => {
+    for (const t of terms) if (new RegExp(`(^|[^\\w-])${esc(t)}($|[^\\w-])`, 'i').test(l)) hits.push(`${slash(file)}:${i + 1}: "${t}" (this client's notes)`);
+    for (const [kind, re, real] of EXPORT_PATTERNS) {
+      for (const m of l.matchAll(new RegExp(re.source, `${re.flags}g`))) if (!real || real(m[0])) { hits.push(`${slash(file)}:${i + 1}: ${kind} "${m[0].trim()}"`); break; }
+    }
+  });
+  if (hits.length) {
+    console.log(`NOT client-free: ${hits.length} hit(s). Rewrite these generically, then run this again:`);
+    for (const h of hits) console.log(`  ${h}`);
+    process.exit(1);
+  }
+  // A filter, not a certificate: it only knows what this workspace's notes name.
+  console.log(`No configured identifiers detected (${terms.length} names from this workspace's notes; IP, GUID, email, handle and resource-ID patterns). Read it once yourself before it leaves.`);
 }
 
 // Offboarding: stop refreshing a workspace on this machine (after it has been
@@ -617,7 +846,8 @@ function usage() {
     '  node tools/workspace.mjs upgrade             (checked pull of the rulebook + refresh)',
     '  node tools/workspace.mjs refresh             (regenerate every workspace here; runs after git pull)',
     '  node tools/workspace.mjs doctor [<workspace>] (health check: what\'s OK, what to fix)',
-    '  node tools/workspace.mjs backup <workspace> [--to <client-approved folder>]',
+    '  node tools/workspace.mjs backup <workspace> [--to <client-approved folder>] [--anyway]',
+    '  node tools/workspace.mjs check-export <file>  (from a workspace: is this file client-free?)',
     '  node tools/workspace.mjs forget <workspace>   (offboarding: stop refreshing it here)',
   ].join('\n'));
   process.exit(2);
@@ -653,8 +883,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   else if (cmd === 'backup') {
     const t = rest.indexOf('--to'); let to;
     if (t >= 0) { to = rest[t + 1]; rest.splice(t, 2); }
-    cmdBackup(rest[0], to);
-  } else if (cmd === 'forget') cmdForget(rest[0]);
+    const a = rest.indexOf('--anyway'); if (a >= 0) rest.splice(a, 1);
+    cmdBackup(rest[0], to, a >= 0);
+  } else if (cmd === 'check-export') cmdCheckExport(rest[0]);
+  else if (cmd === 'forget') cmdForget(rest[0]);
   else if (cmd === 'snapshot') cmdSnapshot(rest.join(' '));
   else usage();
 }
