@@ -25,7 +25,8 @@ routing doesn't.
 5. Follow its steps. Stop only for base/principles/stop-zones.md. Use the
    matching toolchain skill for verification commands.
 6. Verify with actual checks and include the evidence (command + output); for
-   a planned build, check off the plan's Verification section.
+   a planned build, check off the plan's Verification section. Then it's
+   "awaiting your acceptance", not done, until I accept it.
 7. Draft the doc from base/templates/ (usually change-record) in the project
    folder.
 8. If the change touches identity/IAM, network exposure, secrets, data

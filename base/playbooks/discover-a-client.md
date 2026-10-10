@@ -27,5 +27,12 @@
 10. Graduation check: a discovery checklist that worked well for this client
     -> propose adding to context.md (or the rulebook via feedback.md).
 
+Breadth first. Discovery is done when there's enough to start real work:
+environment boundaries, main architecture, owners, delivery paths (how
+changes ship) and a broad inventory. Don't chase full topology; learn the
+detail during real tasks. An anomaly that doesn't block discovery gets
+recorded (type, scope, evidence, unknowns, next diagnostic step) in NOW.md
+Backlog and parked, unless I ask to fix it.
+
 STOP-and-confirm: all zones in base/principles/stop-zones.md. Most likely here:
 access breadth, secret exposure.
