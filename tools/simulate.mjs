@@ -43,7 +43,10 @@ function claude(dir, prompt, cont, mode, allow) {
   return new Promise((done) => {
     // The prompt goes in on stdin: on Windows a shell would mangle quotes, colons and spaces.
     // stream-json so the "reply" is EVERYTHING the agent said, not just its last message.
-    const a = ['-p', '--max-turns', '30', '--output-format', 'stream-json', '--verbose', '--permission-mode', mode || 'acceptEdits'];
+    // Fresh workspaces aren't trusted, so Claude Code ignores their .claude/settings.json;
+    // pass the same file as flag settings so scenarios run with the hooks and permissions users get.
+    const a = ['-p', '--max-turns', '30', '--output-format', 'stream-json', '--verbose', '--permission-mode', mode || 'acceptEdits',
+      '--settings', join(dir, '.claude', 'settings.json')];
     if (allow?.length) a.push('--allowedTools', ...allow);
     if (cont) a.unshift('-c');
     const p = spawn('claude', a, { cwd: dir, env, stdio: ['pipe', 'pipe', 'pipe'], shell: process.platform === 'win32' });

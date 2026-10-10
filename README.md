@@ -33,14 +33,18 @@ later ("verify access", "test the team").
 Requires Node 18+ and git.
 
 ## Layout
-- `agents/` — the team, written once: `team.md` (lead + shared rules),
-  `architect.md`, `engineer.md`, `security.md`.
+- `agents/` — the team, written once: `team.md` (lead + shared rules, loaded
+  every chat), `architect.md`, `engineer.md`, `security.md`, `pm.md`, `retro.md`.
+- `skills/<name>/SKILL.md` — procedures loaded only when a task needs them,
+  with their reference files and scripts beside them (`skills/playbooks/`
+  holds the task playbooks).
 - `base/` — principles (when to ask, STOP zones), standards (secrets,
-  security gates, docs), `lenses.md`, playbooks, doc templates.
+  security gates, docs), `lenses.md`, doc templates.
 - `workspace-template/` — what a new client workspace starts as.
 - `tools/workspace.mjs` — creates workspaces and generates each tool's agent
   files (Claude Code subagents, Copilot custom agents, Cursor subagents,
   instructions).
+- `tools/hooks/` — Claude Code hooks that enforce some team rules as code.
 - `tools/check.mjs` — consistency check; CI runs it on pushes to main and PRs.
 
 ## Changing the team

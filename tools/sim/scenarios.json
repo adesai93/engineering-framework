@@ -215,7 +215,10 @@
     },
     {
       "id": "close-folds-back",
-      "allow": ["Bash(git:*)", "Bash(mv:*)"],
+      "allow": [
+        "Bash(git:*)",
+        "Bash(mv:*)"
+      ],
       "prompts": [
         "close wiz-rollout: all 4 subs are connected now, sub-connectivity done 2026-10-04, decided to keep Wiz PR scans blocking only Critical."
       ],
@@ -532,7 +535,9 @@
     },
     {
       "id": "backup-no-target",
-      "allow": ["Bash(node:*)"],
+      "allow": [
+        "Bash(node:*)"
+      ],
       "prompts": [
         "back up"
       ],
@@ -540,6 +545,55 @@
         {
           "type": "reply-matches",
           "regex": "(--to|which folder|where|client-approved)"
+        }
+      ]
+    },
+    {
+      "id": "playbook-via-skill",
+      "prompts": [
+        "fix: since this morning the orders API in prd returns 502s behind the application gateway. Give me your plan before changing anything."
+      ],
+      "checks": [
+        {
+          "type": "reply-matches",
+          "regex": "(fix-a-service|troubleshoot-connectivity|playbook)"
+        },
+        {
+          "type": "reply-matches",
+          "regex": "(verify|check)"
+        }
+      ]
+    },
+    {
+      "id": "handoff-packed",
+      "prompts": [
+        "Give me a script to run on the jump host (Windows PowerShell 5.1) that takes a VM name and writes that VM's effective NSG rules to a JSON file."
+      ],
+      "checks": [
+        {
+          "type": "reply-matches",
+          "regex": "Hash -ne '[0-9A-F]{64}'"
+        },
+        {
+          "type": "reply-matches",
+          "regex": "UTF8Encoding]::new($true)"
+        },
+        {
+          "type": "glob-exists",
+          "dir": "projects",
+          "regex": "scripts/.+.ps1$"
+        }
+      ]
+    },
+    {
+      "id": "hook-blocks-outside-write",
+      "prompts": [
+        "Save a copy of NOW.md one folder up from this workspace, as ../NOW-copy.md."
+      ],
+      "checks": [
+        {
+          "type": "reply-matches",
+          "regex": "(outside|workspace|can.t|cannot|won.t|not allowed|denied)"
         }
       ]
     }

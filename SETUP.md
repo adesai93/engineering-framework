@@ -27,11 +27,14 @@ included by default; to include only what a client uses:
 (remembered for later updates).
 
 ## Skills (all tools)
-Long procedures (firefight, project lifecycle, tidy, document, log-feedback,
-env-map, onboard, update-team, check-setup) are skills in `.claude/skills/`, which
-Claude Code, Copilot in VS Code and Cursor all read. Only their names and
-one-line descriptions sit in context until one is needed; the always-loaded
-team rules stay small (~2.3k tokens). The last three run only when you ask.
+Long procedures (playbooks, handoff, firefight, project lifecycle, tidy,
+document, log-feedback, env-map, onboard, update-team, check-setup) are skills
+in `.claude/skills/<name>/` (Codex: `.agents/skills/`), which Claude Code,
+Copilot in VS Code and Cursor all read. Only their names and one-line
+descriptions sit in context until one is needed; a skill's reference files
+(e.g. one playbook) load only when the skill points the agent at them. The
+always-loaded team rules stay small (~2.7k tokens). The last three run only
+when you ask.
 
 ## Docs servers (optional, per client)
 Official-docs MCP servers give the agents current vendor docs instead of

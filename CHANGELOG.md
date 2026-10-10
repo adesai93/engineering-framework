@@ -5,6 +5,41 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.17.0] - 2026-10-10
+Architecture pass against Anthropic's agent, context-engineering and skill
+guidance and Microsoft's orchestration patterns: checkable rules move into
+code, procedures load only when needed.
+### Changed
+- Skills are folders: skills/<name>/SKILL.md plus reference files and scripts,
+  copied beside SKILL.md for every tool (a file dropped from a skill is removed
+  on update; an edited one is kept in .engfw-backup).
+- Playbooks moved from base/playbooks/ into the `playbooks` skill: one
+  description routes to the one playbook a task needs. The engineer and lead
+  point at the skill instead of listing files.
+- Skill descriptions in the third person, what then when (check.mjs enforces).
+- handoff: PowerShell paste blocks come from `skills/handoff/pack.mjs`
+  (read-only, pre-approved in Claude Code and Codex): hash computed over the
+  exact bytes, tabs converted, `'@` lines refused, output file checked. The
+  agent no longer hand-writes the block or skips the hash.
+- Claude Code: CLAUDE.md now holds the team rules itself (minus what hooks
+  enforce) and imports context.md, rules.md and NOW.md.
+- simulate.mjs passes each workspace's settings, so scenarios run with the
+  hooks and permissions users get (untrusted folders ignored them before).
+### Added
+- Claude Code hooks (tools/hooks/, wired into .claude/settings.json; hooks
+  added by hand are kept): session start flags memory files over their limit,
+  project logs over ~300 lines and a stale workspace; writes only inside the
+  workspace and its repos, never the rulebook; no whole reads of files over
+  ~300 lines; a possible secret or a malformed inventory.md line just written
+  goes back to the agent.
+- `<!-- no-hooks -->` blocks in team.md: rules a hook enforces load only for
+  tools without hooks.
+- Tests for skill reference files and all three hooks (21 total); scenarios
+  playbook-via-skill, handoff-packed, hook-blocks-outside-write.
+- Experiment branch `experiment/design-build-as-skills`: architect and
+  engineer as skills the lead loads, to compare against subagents by
+  simulation (pass rate and cost) before deciding.
+
 ## [0.16.0] - 2026-10-10
 From a second review: fixes, one source per rule, and a way to keep the team small.
 ### Changed
