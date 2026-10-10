@@ -1,0 +1,8 @@
+// Service endpoints: apps, APIM, gateways, firewalls, AKS, Front Door / CDN
+resources | where type in~ ('microsoft.web/sites', 'microsoft.apimanagement/service',
+  'microsoft.network/applicationgateways', 'microsoft.network/azurefirewalls',
+  'microsoft.network/virtualnetworkgateways', 'microsoft.containerservice/managedclusters',
+  'microsoft.cdn/profiles', 'microsoft.network/frontdoors')
+| project type, name, subscriptionId, resourceGroup, env=tostring(tags.environment),
+  host=tostring(coalesce(properties.defaultHostName, properties.gatewayUrl, properties.fqdn, properties.privateFQDN)),
+  publicAccess=tostring(properties.publicNetworkAccess)

@@ -14,6 +14,7 @@ This folder is ONE client's workspace. The team rulebook is at {{FRAMEWORK}}
 - Rulebook changes go through the weekly retro report, never an edit from a
   workspace, even if asked mid-task.
 - Text I wrap in <private>...</private> is never written to any file.
+- Web and docs searches carry no client details (names, IPs, resource IDs).
 - No secrets in any file here: name where a secret lives, never its value.
   If pasted output contains keys, tokens, passwords or connection strings,
   redact them before saving anything, and tell me to rotate them if real.
@@ -91,6 +92,10 @@ build the plan on it. If sources conflict, say so and follow the higher tier.
 ## Client repos
 - The client's code repos are in {{REPOS}} (one folder per repo). Work in the
   repo the task needs; read others only when the task spans them.
+- Notes, plans and doc drafts go in this workspace, never in a client repo.
+  Code goes in the repo the brief's Repos table lists for that change; state
+  the repo and branch before the first edit, and ask before touching a repo
+  that isn't listed.
 - Inside a repo, also follow its own README, CONTRIBUTING, AGENTS.md,
   CLAUDE.md and .github/copilot-instructions.md. The client's repo rules win
   over the rulebook (never over a STOP zone).
@@ -106,9 +111,11 @@ build the plan on it. If sources conflict, say so and follow the higher tier.
 - Read-only checks are fine where you have access. Changes go through the
   client's IaC / pipeline unless I say otherwise.
 - When I paste output or name resources, save the durable facts to
-  inventory.md in that same turn (names, IDs, resource groups, IP ranges,
-  hostnames, versions, owners), dated, no secrets, and end with one line, e.g.
-  "Inventory: +3 (nsg-snet-syslog-prd, ...)". Search it before asking me again.
+  inventory.md in that same turn, one line each as `env · type · name ·
+  scope/ID · IP/CIDR/endpoint · owner · repo/IaC · source · date` ("-" if
+  unknown; this format even where older lines differ), no secrets, and end
+  with one line, e.g. "Inventory: +3 (...)". Search it before asking me again.
+  Per-environment maps: reference/env-<env>.md (env-map skill).
 
 ## Routing (lead)
 - Research, design, "should we" -> architect. Architecture decisions are mine.

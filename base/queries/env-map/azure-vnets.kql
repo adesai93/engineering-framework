@@ -1,0 +1,8 @@
+// VNets and subnets
+resources | where type =~ 'microsoft.network/virtualnetworks'
+| mv-expand s = properties.subnets
+| project vnet=name, subscriptionId, resourceGroup, location, env=tostring(tags.environment),
+  space=tostring(properties.addressSpace.addressPrefixes), subnet=tostring(s.name),
+  prefix=tostring(coalesce(s.properties.addressPrefix, s.properties.addressPrefixes)),
+  nsg=tostring(split(s.properties.networkSecurityGroup.id, '/')[8]),
+  routeTable=tostring(split(s.properties.routeTable.id, '/')[8])

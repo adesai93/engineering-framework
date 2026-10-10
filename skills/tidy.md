@@ -18,6 +18,7 @@ description: Compact the workspace memory files. Use when the user says "tidy", 
    log-<YYYY>.md in the same folder; next.md must still say where things stand.
 6. decisions.md: current decisions only; superseded lines to
    history/decisions.md.
-7. inventory.md: update in place; remove things that no longer exist.
+7. inventory.md: update in place; remove things that no longer exist;
+   rewrite older free-form lines into its `env · type · name · ...` format.
 8. Delete nothing. Snapshot again ({{SNAPSHOT}} "tidy <date>"), report what
    moved, and say: "undo tidy" = `git revert` that commit.

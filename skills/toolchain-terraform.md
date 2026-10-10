@@ -23,3 +23,6 @@ surgery; never print state (it holds secrets); mark secret variables
 
 Official sources: developer.hashicorp.com/terraform; HashiCorp's agent skills
 (github.com/hashicorp/agent-skills) if the client allows them.
+Docs server if set up (SETUP.md): HashiCorp Terraform MCP (registry docs; no
+TFE token). Search in generic terms only: no client names, IPs or resource
+IDs.

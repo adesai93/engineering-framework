@@ -1,0 +1,5 @@
+// Public IPs and what they are attached to
+resources | where type =~ 'microsoft.network/publicipaddresses'
+| project name, subscriptionId, resourceGroup, env=tostring(tags.environment),
+  ip=tostring(properties.ipAddress), fqdn=tostring(properties.dnsSettings.fqdn),
+  attachedTo=tostring(split(properties.ipConfiguration.id, '/')[8])

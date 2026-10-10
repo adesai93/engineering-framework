@@ -243,8 +243,25 @@ function remember(ws) {
   writeFileSync(REGISTRY, JSON.stringify([...list].sort(), null, 2) + '\n');
 }
 
-function gitOut(cwd, args) {
-  return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: CHILD_ENV }).trim();
+function gitOut(cwd, args, env = CHILD_ENV) {
+  return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env }).trim();
+}
+
+// Pull the rulebook as ITS owner without switching the active GitHub account (on a
+// client laptop that's usually the client work account). Set once per machine:
+//   git -C <rulebook> config engfw.githubUser <owner>
+// The owner's token (from `gh auth token --user`) goes into this one git call
+// through environment-only config, so nothing is stored or shown in the command.
+function rulebookGitEnv() {
+  let user = '';
+  try { user = gitOut(ROOT, ['config', '--get', 'engfw.githubUser']); } catch { return CHILD_ENV; }
+  let token = '';
+  try { token = execFileSync('gh', ['auth', 'token', '--user', user], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: CHILD_ENV }).trim(); } catch {
+    console.log(`WARNING: couldn't get a GitHub token for "${user}" (gh auth token --user ${user}). Sign that account into gh once: gh auth login`);
+    return CHILD_ENV;
+  }
+  const header = `Authorization: Basic ${Buffer.from(`x-access-token:${token}`).toString('base64')}`;
+  return { ...CHILD_ENV, GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'http.https://github.com/.extraheader', GIT_CONFIG_VALUE_0: header };
 }
 const isMaintainer = () => { try { return gitOut(ROOT, ['config', '--get', 'engfw.maintainer']) === 'true'; } catch { return false; } };
 
@@ -252,9 +269,10 @@ const isMaintainer = () => { try { return gitOut(ROOT, ['config', '--get', 'engf
 export function explainGit(stderr) {
   const s = String(stderr || '');
   if (/repository not found|authentication failed|could not read username|permission denied|403|401|access denied/i.test(s)) {
-    return 'GitHub refused access. Usually the wrong GitHub account is active on this machine (e.g. a client work '
-      + 'account). Fix: sign in as the account that can read the rulebook (`gh auth switch`, or Git Credential '
-      + 'Manager), or re-clone with the read-only token (UPDATING.md).';
+    return 'GitHub refused access: the account git used can\'t see the rulebook (usually the client work account '
+      + 'is active). Don\'t switch accounts. Tell the rulebook which account owns it, once: '
+      + '`git -C <rulebook> config engfw.githubUser <owner>` (that account must be signed into gh: `gh auth login`), '
+      + 'then run `node <rulebook>/tools/workspace.mjs upgrade`. Or re-clone with the read-only token (UPDATING.md).';
   }
   if (/could not resolve host|timed out|unable to access|failed to connect|network is unreachable|proxy/i.test(s)) {
     return 'Network problem reaching GitHub (offline, proxy or VPN). Try again when connected.';
@@ -271,7 +289,7 @@ function rulebookState({ fetch = true } = {}) {
   try { st.commit = gitOut(ROOT, ['rev-parse', '--short', 'HEAD']); } catch { return st; } // not a git clone
   try { st.dirty = gitOut(ROOT, ['status', '--porcelain']); } catch { /* ignore */ }
   if (fetch && !process.env.ENGFW_NO_FETCH) {
-    try { gitOut(ROOT, ['fetch', '-q']); } catch (e) { st.fetchError = explainGit(e.stderr); }
+    try { gitOut(ROOT, ['fetch', '-q'], rulebookGitEnv()); } catch (e) { st.fetchError = explainGit(e.stderr); }
   }
   try { st.ahead = gitOut(ROOT, ['log', '--oneline', '@{u}..HEAD']); } catch { /* no upstream */ }
   try { st.behind = gitOut(ROOT, ['log', '--oneline', 'HEAD..@{u}']); } catch { /* no upstream */ }
@@ -312,7 +330,7 @@ function cmdUpgrade() {
     process.exit(1);
   }
   try {
-    execFileSync('git', ['pull', '--ff-only', '-q'], { cwd: ROOT, stdio: ['ignore', 'inherit', 'pipe'], env: { ...CHILD_ENV, ENGFW_NO_HOOK: '1' } });
+    execFileSync('git', ['pull', '--ff-only', '-q'], { cwd: ROOT, stdio: ['ignore', 'inherit', 'pipe'], env: { ...rulebookGitEnv(), ENGFW_NO_HOOK: '1' } });
   } catch (e) { die(`git pull failed. ${explainGit(e.stderr)}`); }
   console.log(`Rulebook: v${before} -> v${frameworkVersion()}`);
   cmdRefresh();
@@ -415,14 +433,32 @@ function cmdUpdate(path, repos, toolchains) {
   console.log(`Updating ${cfg.client} workspace at ${ws} to v${frameworkVersion()}`);
   const tc = toolchains || cfg.toolchains;
   install(ws, { client: cfg.client, framework: cfg.framework, tools: cfg.tools, ...(repoList.length ? { repos: repoList } : {}), ...(tc ? { toolchains: tc } : {}) });
-  // Template files added in newer versions (e.g. rules.md): copy only if missing.
-  for (const e of readdirSync(TEMPLATE, { withFileTypes: true })) {
-    if (!e.isFile() || existsSync(join(ws, e.name))) continue;
-    const text = read(join(TEMPLATE, e.name)).replaceAll('<CLIENT>', cfg.client);
-    writeFileSync(join(ws, e.name), text);
-    console.log(`  added ${e.name} (new in this version)`);
-  }
+  syncTemplate(ws, cfg.client);
   console.log('Done. Your notes (context, rules, NOW, projects, logs) were not touched.');
+}
+
+// Bring an existing workspace up to the current template without touching notes:
+// add any file or folder that's missing (at any depth), and refresh the blank
+// project template (projects/_new) completely, since it holds no notes.
+function syncTemplate(ws, client) {
+  const fill = (text) => text.replaceAll('<CLIENT>', client);
+  const walk = (rel) => {
+    for (const e of readdirSync(join(TEMPLATE, rel), { withFileTypes: true })) {
+      const r = rel ? `${rel}/${e.name}` : e.name;
+      const dst = join(ws, r);
+      const isNewTemplate = r === 'projects/_new' || r.startsWith('projects/_new/');
+      if (e.isDirectory()) {
+        if (!existsSync(dst)) { mkdirSync(dst, { recursive: true }); console.log(`  added ${r}/ (new in this version)`); }
+        walk(r);
+      } else {
+        const existed = existsSync(dst);
+        if (existed && !(isNewTemplate && read(dst) !== fill(read(join(TEMPLATE, r))))) continue;
+        writeFileSync(dst, fill(read(join(TEMPLATE, r))));
+        console.log(`  ${existed ? 'refreshed' : 'added'} ${r}`);
+      }
+    }
+  };
+  walk('');
 }
 
 // One-screen health check for this machine (and a workspace, if given).

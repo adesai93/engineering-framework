@@ -21,6 +21,7 @@ description: Start, resume, park, close or log work. Use for "new project", "res
   accepted decisions -> decisions.md, durable environment facts ->
   inventory.md, standing client facts -> context.md (or reference/), plans ->
   status Done. Then write the outcome at the top of brief.md, move the folder
-  to archive/, move its NOW.md line to Done, and snapshot.
+  to archive/, move its NOW.md line to Done, and snapshot (the snapshot
+  command on its own, not chained with the move, so it stays pre-approved).
 - Big projects: one folder with a workstream list in brief.md; split a
   workstream out only when it gets its own timeline.

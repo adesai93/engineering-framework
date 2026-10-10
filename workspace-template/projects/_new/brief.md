@@ -8,6 +8,12 @@ Started: YYYY-MM-DD · Ticket: (link or n/a) · Status: active
 ## Scope
 (in / out; systems, environments and repos involved)
 
+## Repos
+(which repos this work changes, and nothing else without asking)
+| Repo | What changes there | Branch |
+|---|---|---|
+| <repo> | <files / modules> | <branch> |
+
 ## Deploy path
 (how changes ship for this work: repo -> pipeline / manual script; what it
 can and can't do, e.g. groups only. Confirmed from: <file or person>)

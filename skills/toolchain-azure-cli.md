@@ -22,3 +22,5 @@ client's IaC or change path; deletes and RBAC widening are STOP zones. Never
 echo connection strings or the output of `az storage account keys list`.
 
 Official sources: learn.microsoft.com/cli/azure (and `az <group> --help`).
+Docs server if set up (SETUP.md): Microsoft Learn MCP. Search in generic
+terms only: no client names, IPs or resource IDs.

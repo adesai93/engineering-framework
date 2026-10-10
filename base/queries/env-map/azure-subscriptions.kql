@@ -1,0 +1,3 @@
+// Subscriptions and their tags (to work out which belong to which environment)
+resourcecontainers | where type =~ 'microsoft.resources/subscriptions'
+| project subscriptionId, name, tags
