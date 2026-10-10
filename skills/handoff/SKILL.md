@@ -18,29 +18,15 @@ Before sending, the reply must pass all of these:
    path, a "same as before", or a replacement tail. Remote machines can't see
    this workspace. Also save it to projects/<p>/scripts/<name> (overwrite;
    the log notes the version).
-3. Scripts with `param()` (or several files): ONE block that writes the file,
-   checks it, then runs it, so pasting can't run `param()` on its own:
-   ```powershell
-   # RUNS IN: <where> · <shell + version> · <read-only | changes X>
-   $dir = Join-Path $env:TEMP 'handoff'; New-Item -ItemType Directory -Force $dir | Out-Null
-   $ps1 = Join-Path $dir 'Get-Thing.ps1'; $out = Join-Path $dir 'thing.json'
-   $src = @'
-   param([Parameter(Mandatory)][string]$WorkspaceId, [string]$OutFile)
-   ...
-   '@
-   [IO.File]::WriteAllText($ps1, (($src -split "`r?`n") -join "`r`n"), [Text.UTF8Encoding]::new($true))
-   if ((Get-FileHash $ps1).Hash -ne '<sha256>') { throw 'Script altered in transfer: copy the block again' }
-   Remove-Item $out -ErrorAction SilentlyContinue
-   & $ps1 -WorkspaceId '<value>' -OutFile $out
-   if (-not (Test-Path $out) -or (Get-Item $out).Length -eq 0) { throw 'No output written' }
-   ```
-   `'@` stays at column 0. Write the file exactly this way (never
-   Set-Content / Out-File): their encoding differs between PowerShell 5.1 and
-   7, so the hash would too. The hash is the one you got by running this exact
-   block yourself; if you couldn't run it, leave the hash line out and say so.
+3. PowerShell scripts: never hand-write the paste block. Save the script
+   (step 2), then print the block with this read-only packer and paste its
+   output verbatim:
+   `node {{FRAMEWORK}}/skills/handoff/pack.mjs projects/<p>/scripts/<name>.ps1 --where "<where> · <shell + version> · <read-only | changes X>" [--param Name=Value]... [--out <file>]`
+   The block writes the file, checks its hash (same on PowerShell 5.1 and 7),
+   runs it with the parameters, and checks the output file, so pasting can
+   never run `param()` on its own.
 4. Plain text only: no Base64, compression or encoded payloads. A small fix
-   to a long script = the full script again, or one exact block to find and
-   replace, with the hash before and after.
+   to a long script = save it, pack it again, send the new block.
 5. Queries (KQL, SQL, Resource Graph): complete and standalone, with every
    `let` and the scope written in (which workspace or subscription), on every
    iteration.
