@@ -45,6 +45,8 @@ From an independent review of the repo, plus a new agent.
 - The simulator and tests use their own workspace registry and leave the
   rulebook's git hooks alone; "no changes" and "path unchanged" checks also
   catch new commits.
+- check.mjs fails on a git repository inside the rulebook (a clone or
+  submodule), which its file listing used to skip.
 - The rulebook ignores its own .claude/settings.local.json (saved when you
   approve a permission while working in it).
 - SETUP: architect's Copilot tools described correctly; README lists what

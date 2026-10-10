@@ -275,6 +275,17 @@ function checkNoAutoload(ctx) {
   return ctx.files.filter((f) => AUTOLOADED.test(f)).map((f) => fail(f, 1, 'agent tools auto-load this from the rulebook root; move it (generated files belong in workspaces)'));
 }
 
+// j. No git repository inside the rulebook: a clone or submodule here (e.g. from
+// running `git clone` inside this folder) would be committed as a pointer or hide
+// a second, different copy of the rules. The file listing skips folders, so look.
+function checkNoNestedRepos() {
+  const run = (a) => { try { return execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch { return ''; } };
+  const links = run(['ls-files', '-s']).split('\n').filter((l) => l.startsWith('160000 ')).map((l) => l.split('\t')[1]);
+  const nested = run(['ls-files', '--others', '--exclude-standard', '--directory']).split('\n')
+    .filter((d) => d.endsWith('/') && existsSync(join(ROOT, d, '.git'))).map((d) => d.slice(0, -1));
+  return [...links, ...nested].map((p) => fail(p, 1, 'a git repository inside the rulebook (clone or submodule): move it out of this folder'));
+}
+
 const CHECKS = [
   ['team definitions', checkAgents],
   ['path references resolve', checkReferences],
@@ -285,6 +296,7 @@ const CHECKS = [
   ['changelog release', checkChangelog],
   ['size budgets', checkBudgets],
   ['no auto-loaded files in rulebook root', checkNoAutoload],
+  ['no git repositories inside the rulebook', checkNoNestedRepos],
 ];
 
 function main() {
