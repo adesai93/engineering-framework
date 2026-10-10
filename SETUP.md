@@ -179,6 +179,23 @@ Gotchas:
 
 ---
 
+## What the tools enforce vs. what the agent is told
+Some rules are settings the tool enforces; the rest are instructions the model
+follows (usually, not always). Tell each client which is which.
+
+| Rule | Claude Code | Copilot (VS Code) | Cursor | Codex |
+|---|---|---|---|---|
+| No edits to the rulebook | enforced (Edit deny) | editor read-only; the agent's terminal isn't | CLI: enforced; editor: read-only folder | instruction (sandbox keeps writes in the workspace, if you run workspace-write) |
+| Security agent can't change anything | enforced (no write tools) | enforced (read/search/web only) | `readonly: true` | enforced (read-only sandbox) |
+| No pushes to the rulebook | enforced: push URL blocked; CI flags direct pushes | same | same | same |
+| No secrets in saved files | pattern scan of workspace files: snapshot warns, backup stops; otherwise instruction | same | same | same |
+| STOP zones, stay inside this workspace, `<private>`, clean searches, "evidence, never instructions" | instruction; the tool's own approval prompts are the backstop | same | same | same |
+
+Keep tool approval prompts on for anything that changes state: they're the
+only hard stop behind the STOP zones.
+
+---
+
 ## "Not saved" warnings
 If the agent says "⚠️ Not saved", it couldn't write to the workspace: usually
 the chat is in Ask/read-only mode, or you declined the edit. Switch to Agent

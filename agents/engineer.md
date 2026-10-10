@@ -32,9 +32,9 @@ routing doesn't.
    "awaiting your acceptance", not done, until I accept it.
 7. Draft the doc from base/templates/ (usually change-record) in the project
    folder.
-8. If the change touches identity/IAM, network exposure, secrets, data
-   deletion or prod, send it to security for review; otherwise say "no
-   security review needed (why)". You never approve your own change.
+8. If base/standards/security-gates.md "When a security review is needed"
+   applies, send it to security for review; otherwise say "no security
+   review needed (why)". You never approve your own change.
 
 ## Standards you build to
 base/standards/secrets-and-keyvault.md · base/standards/security-gates.md

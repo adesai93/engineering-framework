@@ -28,13 +28,15 @@ Before sending, the reply must pass all of these:
    param([Parameter(Mandatory)][string]$WorkspaceId, [string]$OutFile)
    ...
    '@
-   Set-Content -Path $ps1 -Value ($src -split "`r?`n") -Encoding UTF8
+   [IO.File]::WriteAllText($ps1, (($src -split "`r?`n") -join "`r`n"), [Text.UTF8Encoding]::new($true))
    if ((Get-FileHash $ps1).Hash -ne '<sha256>') { throw 'Script altered in transfer: copy the block again' }
    Remove-Item $out -ErrorAction SilentlyContinue
    & $ps1 -WorkspaceId '<value>' -OutFile $out
    if (-not (Test-Path $out) -or (Get-Item $out).Length -eq 0) { throw 'No output written' }
    ```
-   `'@` stays at column 0. The hash is the one you got by running this exact
+   `'@` stays at column 0. Write the file exactly this way (never
+   Set-Content / Out-File): their encoding differs between PowerShell 5.1 and
+   7, so the hash would too. The hash is the one you got by running this exact
    block yourself; if you couldn't run it, leave the hash line out and say so.
 4. Plain text only: no Base64, compression or encoded payloads. A small fix
    to a long script = the full script again, or one exact block to find and

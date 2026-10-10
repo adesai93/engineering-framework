@@ -13,7 +13,8 @@ assumption in the output.
 - Format: "Assuming X (reason). Proceeding."
 
 ## STOP and confirm — ONLY the zones in stop-zones.md
-1. Architecture *design* (you want the thinking) -> use plan mode.
+1. Architecture *design* (you want the thinking) -> present, then wait
+   (plan mode where the tool has it).
 2. Security-sensitive or irreversible actions (network exposure, secret
    exposure, access breadth, gate weakening, data loss, irreversible,
    unapproved prod change).

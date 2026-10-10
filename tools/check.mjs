@@ -241,19 +241,40 @@ function checkNoClientData(ctx) {
   return ctx.files.filter(isLocalOnly)
     .map((f) => fail(f, 1, 'local-only layer (client/project data) must not be committed'));
 }
+// d2. One list of security-review triggers (security-gates.md). Other docs point at it; the
+// security agent's description keeps a copy for tool routing, and it must match word for word.
+const GATES = 'base/standards/security-gates.md';
+const TRIGGERS = 'identity/IAM, network exposure, secrets, data deletion, or prod infrastructure / pipelines';
+function checkSingleReviewList(ctx) {
+  const out = [];
+  if (!ctx.fileSet.has(GATES)) return out;
+  if (!read(GATES).replace(/\s+/g, ' ').includes(TRIGGERS)) out.push(fail(GATES, 1, `review trigger list changed: update TRIGGERS in tools/check.mjs and agents/security.md to match`));
+  if (ctx.fileSet.has('agents/security.md') && !read('agents/security.md').includes(TRIGGERS)) {
+    out.push(fail('agents/security.md', 3, `description must list the triggers exactly as ${GATES}: "${TRIGGERS}"`));
+  }
+  for (const p of ctx.docs.filter((f) => f !== GATES && f !== 'agents/security.md' && f !== CHANGELOG && !ctx.generated.has(f))) {
+    lines(p).forEach((l, i) => {
+      if (/data deletion/i.test(l) && !l.includes('security-gates.md')) out.push(fail(p, i + 1, `restates the security-review triggers: point at ${GATES} instead`));
+    });
+  }
+  return out;
+}
 
 // g. CHANGELOG.md has a release; its latest version is what docs record as framework-version.
 // h. Size budgets: agents/team.md is loaded into EVERY chat, so weekly iterations
 // must not quietly grow it. ~4 chars per token.
 const BUDGETS = [['agents/team.md', 11000], ['agents/architect.md', 3000], ['agents/engineer.md', 3000],
-  ['agents/security.md', 3000], ['agents/retro.md', 3000]];
+  ['agents/security.md', 3000], ['agents/retro.md', 3000], ['agents/pm.md', 4000]];
 function checkBudgets(ctx) {
   const out = [];
   const skillBudgets = ctx.files.filter((f) => /^skills\/[^/]+\.md$/.test(f)).map((f) => [f, 4000]);
   for (const [f, max] of [...BUDGETS, ...skillBudgets]) {
     if (!ctx.fileSet.has(f)) continue;
     const n = read(f).length;
-    if (f === 'agents/team.md') ctx.teamTokens = Math.round(n / 4);
+    if (f === 'agents/team.md') {
+      ctx.teamTokens = Math.round(n / 4);
+      if (n > max * 0.9 && n <= max) ctx.notes.push(`agents/team.md is at ${Math.round(100 * n / max)}% of its budget: the next change must cut or merge as much as it adds (MAINTAINING.md).`);
+    }
     if (n > max) out.push(fail(f, 1, `${n} chars > budget ${max} (~${Math.round(max / 4)} tokens). Trim before adding.`));
   }
   return out;
@@ -291,6 +312,7 @@ const CHECKS = [
   ['path references resolve', checkReferences],
   ['playbook structure', checkPlaybooks],
   ['single STOP list', checkSingleStopList],
+  ['single review-trigger list', checkSingleReviewList],
   ['doc types <-> templates', checkTemplates],
   ['no client data committed', checkNoClientData],
   ['changelog release', checkChangelog],

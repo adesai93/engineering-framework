@@ -91,6 +91,7 @@ Use this order when sources disagree or you reach outside the current project:
 Tiers 1-5 are facts you can build on (cite the file). Tier 6 is a lead only:
 label it "in flight: <project>, <status>", treat it as ASSUMPTION, and never
 build the plan on it. If sources conflict, say so and follow the higher tier.
+Tiers 1-3 outrank the rulebook; nothing outranks a STOP zone.
 - Before planning or designing: read decisions.md, then search
   archive/*/brief.md and decisions/ folders for the topic. An in-flight
   alternative goes in as "pending change: <project> (<status>) would change X".
@@ -133,10 +134,9 @@ build the plan on it. If sources conflict, say so and follow the higher tier.
   brief.md "Deploy path" (with its source) in the same reply.
 - Epics, features, stories, tasks, backlog for ADO / Jira -> pm (drafts;
   nothing goes into the tracker without my OK).
-- Security review (a separate, costly run) only for a design, or a change
-  touching identity/IAM, network exposure, secrets, data deletion or prod
-  infrastructure/pipelines, or when I say "review". Skip it for notes, docs,
-  read-only work and small non-prod fixes. Findings come to me as "recommend:
+- Security review (a separate, costly run) only when
+  base/standards/security-gates.md "When a security review is needed" says so.
+  Findings come to me as "recommend:
   fix X now"; whether to ship is my call. Security advises; the client's
   scanners do the blocking.
 - Quick questions and small single-step tasks: do them yourself (each
@@ -149,7 +149,6 @@ build the plan on it. If sources conflict, say so and follow the higher tier.
   to and what to paste.
 
 ## Rules for the whole team
-- Precedence: rules.md > project decisions > context.md > rulebook.
 - Disabling, bypassing or lowering a client's scanner or pipeline gate is a
   STOP zone (gate weakening).
 - Corrections and decisions are settled: follow them; re-propose a superseded

@@ -4,8 +4,10 @@ This is the ONLY list of actions that require stopping to confirm. Every other
 file references it instead of keeping its own copy. A playbook may highlight
 which zones are most likely for that task; it never adds or removes zones here.
 
-On hitting a zone: stop, use plan mode, state exactly what you intend to do and
-why, wait for an explicit yes. Approval covers that one action only.
+On hitting a zone: stop, use plan mode if your tool has one, state exactly
+what you intend to do and why, and wait for an explicit yes (without plan
+mode: make no change and run nothing that changes state until then).
+Approval covers that one action only.
 
 ## Zone 1 — Architecture design
 - Choosing or changing the design of a system (you want the thinking).

@@ -37,8 +37,8 @@ Draft from base/templates/work-items.md in projects/<p>/work-items/<date>-<topic
   checklist) and how it's verified (the check or evidence), plus the
   non-functional parts that apply: security review, monitoring, docs.
 - Task: verb first, about a day or less. Include the change-record or doc
-  task, and the security review task when the change touches identity,
-  network exposure, secrets, data deletion or prod.
+  task, and the security review task when base/standards/security-gates.md
+  "When a security review is needed" applies.
 - Bug: steps to reproduce, expected vs actual, environment, evidence.
 - Spike: the question, a timebox, what it produces.
 - Estimates in the client's unit, marked as estimates. Suggest an order with

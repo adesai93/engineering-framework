@@ -5,6 +5,32 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.16.0] - 2026-10-10
+From a second review: fixes, one source per rule, and a way to keep the team small.
+### Changed
+- Security-review triggers live in one place, base/standards/security-gates.md
+  "When a security review is needed"; team.md, engineer and pm point at it,
+  and the engineer's trigger now also covers prod pipelines (it had drifted
+  to "prod" only). The security agent's description keeps a word-for-word
+  copy for tool routing.
+- team.md: the two precedence statements are merged into "Which information
+  to trust" (tiers 1-3 outrank the rulebook; nothing outranks a STOP zone).
+- STOP zones work without plan mode: tools that don't have it make no change
+  and run nothing that changes state until I say yes.
+### Fixed
+- handoff skill: scripts are written with explicit bytes (UTF-8 with BOM,
+  CRLF), so the hash matches between Windows PowerShell 5.1 and PowerShell 7
+  (Set-Content's encoding differs between them and broke the check).
+- `.gitattributes` (`* text=auto eol=lf`): the rulebook no longer looks
+  modified when git runs without the system `core.autocrlf` (on Windows this
+  failed all 16 workspace tests).
+### Added
+- check.mjs: "single review-trigger list" check; pm.md size budget; a note
+  when team.md passes 90% of its budget.
+- MAINTAINING.md "Prune": quarterly ablation (remove a rule, rerun its
+  scenarios, delete it if they still pass); each inbox pass proposes a cut.
+- SETUP.md: which rules each tool enforces vs. which are instructions only.
+
 ## [0.15.0] - 2026-10-10
 From an independent review of the repo, plus a new agent.
 ### Added
