@@ -223,7 +223,7 @@ What gets generated in the workspace:
 | AGENTS.md | team rules (Codex reads it natively) |
 | .agents/skills/<name>/SKILL.md | the skills (onboard, update-team, check-setup are `$skill`-only) |
 | .codex/agents/*.toml | architect, engineer, security (read-only sandbox), pm, retro |
-| .codex/rules/engineering-framework.rules | pre-approves ONLY the local snapshot command |
+| .codex/rules/engineering-framework.rules | pre-approves ONLY the local snapshot and the read-only check-export |
 
 Set up:
 1. Install Codex (CLI or IDE extension) and sign in.

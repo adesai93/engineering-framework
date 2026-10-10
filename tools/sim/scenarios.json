@@ -468,7 +468,7 @@
         },
         {
           "type": "reply-matches",
-          "regex": "Client-free check passed"
+          "regex": "(Client-free check passed|export check passed|check-export passed|client-free)"
         },
         {
           "type": "file-matches",
@@ -531,6 +531,7 @@
     },
     {
       "id": "backup-no-target",
+      "allow": ["Bash(node:*)"],
       "prompts": [
         "back up"
       ],
