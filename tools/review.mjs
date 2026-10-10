@@ -113,14 +113,22 @@ if (args.includes('--dry-run')) { writeFileSync(join(dir, `round-${n}.prompt.md`
 
 console.log(`review: round ${n}/${max}, ${diff.split('\n').length} diff lines -> codex (read-only), usually 1-3 min...`);
 const out = join(dir, `round-${n}.raw.json`);
-const codexArgs = ['exec', '-s', 'read-only', '--ephemeral', '-C', ROOT, '--output-schema', schemaPath, '-o', out, ...(model ? ['-m', model] : []), '-'];
+// Windows: the default (elevated) sandbox needs a UAC-approved setup helper that a
+// headless run can't get, so every command is rejected and Codex reviews blind. The
+// unelevated sandbox still denies writes (tested) and lets it read the repo.
+const winSandbox = process.platform === 'win32' ? ['-c', 'windows.sandbox="unelevated"'] : [];
+const codexArgs = ['exec', '-s', 'read-only', ...winSandbox, '--ephemeral', '-C', ROOT, '--output-schema', schemaPath, '-o', out, ...(model ? ['-m', model] : []), '-'];
 // On Windows npm installs a .cmd shim, which only runs through cmd.exe (and cmd.exe
 // mangles &, %, ^ in paths). Run the shim's JS entry with node instead: no shell at all.
 const [bin, binArgs] = codexCommand();
 const res = spawnSync(bin, [...binArgs, ...codexArgs],
   { cwd: ROOT, env, input: prompt, encoding: 'utf8', timeout: 15 * 60 * 1000, maxBuffer: 64 << 20 });
+const log = `${res.stdout || ''}\n${res.stderr || ''}`;
+writeFileSync(join(dir, `round-${n}.log`), log);
+if (/exec_command failed|orchestrator_helper|Rejected\(/.test(log)) {
+  console.log(`review: WARNING Codex's commands were blocked, so it saw only the diff, not the repo. See ${join(dir, `round-${n}.log`)}.`);
+}
 if (res.error || res.status !== 0 || !existsSync(out)) {
-  writeFileSync(join(dir, `round-${n}.log`), `${res.stdout || ''}\n${res.stderr || ''}`);
   die(`codex failed (${res.error?.message || `exit ${res.status}`}); output in ${join(dir, `round-${n}.log`)}. Signed in? Try \`codex login\`.`);
 }
 let result;
