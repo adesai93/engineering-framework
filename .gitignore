@@ -6,3 +6,5 @@
 .engineering-framework.json
 inbox/
 .workspaces.local.json
+# Codex review rounds (tools/review.mjs): local working state
+.review/
