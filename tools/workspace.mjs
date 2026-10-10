@@ -222,17 +222,40 @@ function writeClaudeSettings(ws, fw, repos) {
 const MERGED = [/\.code-workspace$/, /^\.cursor\/cli\.json$/];
 // Hand edits to other generated files are kept here before they're replaced.
 const BACKUP_DIR = '.engfw-backup';
-function keepCopy(ws, rel, text, stamp) {
-  const p = join(ws, BACKUP_DIR, stamp, rel);
+// One folder per update run (date-time, plus -2, -3... if needed): never overwritten.
+function keepCopy(ws, rel, text, bk, note) {
+  if (!bk.dir) {
+    const base = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    let d = base; for (let i = 2; existsSync(join(ws, BACKUP_DIR, d)); i++) d = `${base}-${i}`;
+    bk.dir = d;
+  }
+  const p = join(ws, BACKUP_DIR, bk.dir, rel);
   mkdirSync(dirname(p), { recursive: true });
   writeFileSync(p, text);
-  console.log(`  NOTE ${rel} had local edits: replaced, your version is in ${BACKUP_DIR}/${stamp}/${rel}`);
+  if (note) console.log(`  NOTE ${rel} ${note}: your version is in ${BACKUP_DIR}/${bk.dir}/${rel}`);
 }
-function mergeSettings(rel, oldText, oursText, ws, stamp) {
+// JSON with comments and trailing commas (VS Code's .code-workspace format) -> JSON.
+function stripJsonc(s) {
+  let out = ''; let inStr = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]; const n = s[i + 1];
+    if (inStr) { out += c; if (c === '\\') { out += n ?? ''; i++; } else if (c === '"') inStr = false; continue; }
+    if (c === '"') { inStr = true; out += c; continue; }
+    if (c === '/' && n === '/') { while (i < s.length && s[i] !== '\n') i++; out += '\n'; continue; }
+    if (c === '/' && n === '*') { i += 2; while (i < s.length && !(s[i] === '*' && s[i + 1] === '/')) i++; i++; continue; }
+    out += c;
+  }
+  return out.replace(/,(\s*[}\]])/g, '$1');
+}
+// Returns the merged file, or null to leave the file exactly as it is.
+function mergeSettings(rel, oldText, oursText, ws, bk) {
   let mine;
   try { mine = JSON.parse(oldText); } catch {
-    keepCopy(ws, rel, oldText, stamp); // not plain JSON (comments?): can't merge safely
-    return oursText;
+    try { mine = JSON.parse(stripJsonc(oldText)); } catch {
+      console.log(`  SKIPPED ${rel}: it isn't valid JSON, so it was left exactly as it is (the rulebook's settings in it were NOT updated). Fix it, or delete it and run update again.`);
+      return null;
+    }
+    keepCopy(ws, rel, oldText, bk, 'had comments, which JSON can\'t keep; your settings were kept, the commented original');
   }
   const ours = JSON.parse(oursText);
   const out = { ...mine, ...ours };
@@ -268,8 +291,12 @@ function install(ws, cfg) {
   }
   let prev = {};
   try { prev = JSON.parse(read(join(ws, CONFIG))); } catch { /* first install */ }
-  const generated = {};
-  const stamp = new Date().toISOString().slice(0, 10);
+  const commit = (() => { try { return gitOut(ROOT, ['rev-parse', '--short', 'HEAD']); } catch { return 'unknown'; } })();
+  // The recorded hashes say what WE last wrote. They can be trusted only if no
+  // other updater ran since: not on the first update from a version before edit
+  // tracking, nor after an older version's updater (e.g. during a rollback).
+  const trusted = !!(prev.generated && prev.generatedCommit && prev.generatedCommit === prev.commit);
+  const generated = {}; const bk = {}; let unsure = 0;
   for (const [rel, generatedContent] of Object.entries(files)) {
     const p = join(ws, rel);
     mkdirSync(dirname(p), { recursive: true });
@@ -277,19 +304,20 @@ function install(ws, cfg) {
     const old = existsSync(p) ? read(p) : null;
     if (old !== null && MERGED.some((re) => re.test(rel))) {
       // Settings files people edit too: keep their entries, enforce ours.
-      content = mergeSettings(rel, old, generatedContent, ws, stamp);
-    } else if (old !== null && prev.generated?.[rel] && sha(old) !== prev.generated[rel] && old !== normalize(generatedContent)) {
-      // Edited by hand since we wrote it: keep a copy before replacing it.
-      keepCopy(ws, rel, old, stamp);
+      content = mergeSettings(rel, old, generatedContent, ws, bk);
+      if (content === null) continue;
+    } else if (old !== null && old !== normalize(generatedContent)) {
+      if (!trusted) { keepCopy(ws, rel, old, bk); unsure++; } // can't tell: keep a copy of each
+      else if (!prev.generated[rel] || sha(old) !== prev.generated[rel]) keepCopy(ws, rel, old, bk, 'had local edits and was replaced');
     }
     writeFileSync(p, content);
     generated[rel] = sha(content);
     console.log(`  wrote ${rel}`);
   }
+  if (unsure) console.log(`  NOTE couldn't tell whether ${unsure} generated file(s) had local edits (first update with edit tracking, or an older updater ran since), so copies are in ${BACKUP_DIR}/${bk.dir}/. Delete that folder if you never edited them.`);
   if (cfg.tools.includes('claude')) { writeClaudeSettings(ws, cfg.framework, cfg.repos); console.log('  wrote .claude/settings.json'); }
-  const commit = (() => { try { return gitOut(ROOT, ['rev-parse', '--short', 'HEAD']); } catch { return 'unknown'; } })();
   // Merge with what's there: keep settings other commands own (backupDir, lastBackup).
-  writeFileSync(join(ws, CONFIG), JSON.stringify({ ...prev, ...cfg, version: frameworkVersion(), commit, generated }, null, 2) + '\n');
+  writeFileSync(join(ws, CONFIG), JSON.stringify({ ...prev, ...cfg, version: frameworkVersion(), commit, generated, generatedCommit: commit }, null, 2) + '\n');
   remember(ws);
   installPullHook();
 }
@@ -360,10 +388,11 @@ function rulebookState({ fetch = true } = {}) {
   return st;
 }
 
-// A deliberate rollback (UPDATING.md "Going back a version"): engfw.hold names
-// the older commit this laptop stays on until the next `upgrade`.
-function heldHere() {
-  try { return gitOut(ROOT, ['rev-parse', gitOut(ROOT, ['config', '--get', 'engfw.hold'])]) === gitOut(ROOT, ['rev-parse', 'HEAD']); } catch { return false; }
+// A deliberate rollback (UPDATING.md "Going back a version") is a detached
+// checkout of an older release: it has no upstream, so every updater version
+// (old ones included) accepts it; switching back to the branch ends it.
+function pinned() {
+  try { gitOut(ROOT, ['symbolic-ref', '-q', 'HEAD']); return false; } catch { return existsSync(join(ROOT, '.git')); }
 }
 
 // Workspaces must be generated from the released rulebook, never from a draft:
@@ -374,8 +403,8 @@ function guardRulebook() {
   const problems = [];
   if (st.dirty) problems.push(`  uncommitted changes:\n${list(st.dirty)}`);
   if (st.ahead) problems.push(`  local commits not on main:\n${list(st.ahead)}`);
-  if (st.behind && heldHere()) console.log(`NOTE: rulebook held at ${st.commit} (rolled back on purpose; \`upgrade\` moves forward again).`);
-  else if (st.behind) problems.push(`  ${st.behind.split('\n').length} update(s) on main not pulled yet`);
+  if (pinned()) console.log(`NOTE: rulebook pinned at ${st.commit} (rolled back on purpose; \`upgrade\` moves forward again).`);
+  if (st.behind) problems.push(`  ${st.behind.split('\n').length} update(s) on main not pulled yet`);
   if (st.fetchError) console.log(`WARNING: couldn't check GitHub for updates. ${st.fetchError}`);
   if (!problems.length) return st;
   const msg = `The rulebook here isn't the released version, so a workspace built from it could miss fixes or protections:\n${problems.join('\n')}`;
@@ -400,10 +429,16 @@ function cmdUpgrade() {
     console.error('  git -C <rulebook> stash   (keeps them aside)   or   git -C <rulebook> reset --hard @{u}   (drops them)');
     process.exit(1);
   }
+  if (pinned()) {
+    // End a rollback: back onto the default branch, then pull as usual.
+    let branch = '';
+    try { branch = gitOut(ROOT, ['rev-parse', '--abbrev-ref', 'origin/HEAD']).replace(/^origin\//, ''); } catch { /* unknown */ }
+    if (!branch || !git(ROOT, ['switch', '-q', branch])) die('The rulebook is pinned to an older version (rollback). Run `git -C <rulebook> switch main`, then upgrade again.');
+    console.log(`Rollback ended: rulebook back on ${branch}.`);
+  }
   try {
     execFileSync('git', ['pull', '--ff-only', '-q'], { cwd: ROOT, stdio: ['ignore', 'inherit', 'pipe'], env: { ...rulebookGitEnv(), ENGFW_NO_HOOK: '1' } });
   } catch (e) { die(`git pull failed. ${explainGit(e.stderr)}`); }
-  try { execFileSync('git', ['config', '--unset', 'engfw.hold'], { cwd: ROOT, stdio: 'ignore', env: CHILD_ENV }); } catch { /* wasn't held */ }
   console.log(`Rulebook: v${before} -> v${frameworkVersion()}`);
   cmdRefresh();
 }
@@ -486,9 +521,16 @@ const gitErr = (e) => String(e.stderr || e.message || e).trim().split('\n').slic
 function checkPaths(ws, repos) {
   if (within(ws, ROOT) || within(ROOT, ws)) die('create the workspace OUTSIDE the framework repo (and not around it), so client data never lands in it');
   for (const r of repos) if (within(r, ROOT)) die(`--repos ${r} is inside the rulebook: client code never goes there`);
+  const overlap = (a, b) => within(a, b) || within(b, a);
   for (const other of known().filter((w) => canon(w) !== canon(ws) && existsSync(w))) {
-    if (within(ws, other) || within(other, ws)) die(`${ws} overlaps another workspace on this machine (${other}): one folder per client, never nested`);
-    for (const r of repos) if (within(r, other)) die(`--repos ${r} is inside another workspace (${other}): repos belong to one client`);
+    if (overlap(ws, other)) die(`${ws} overlaps another workspace on this machine (${other}): one folder per client, never nested`);
+    let theirs = [];
+    try { theirs = asList(JSON.parse(read(join(other, CONFIG))).repos); } catch { /* unreadable config: root check only */ }
+    for (const t of theirs) if (overlap(ws, t)) die(`${ws} overlaps the repos folder of another workspace (${other}: ${t})`);
+    for (const r of repos) {
+      if (overlap(r, other)) die(`--repos ${r} overlaps another workspace (${other}): repos belong to one client`);
+      for (const t of theirs) if (overlap(r, t)) die(`--repos ${r} overlaps another client's repos folder (${t}, used by ${other}): repos belong to one client`);
+    }
   }
 }
 
@@ -578,7 +620,7 @@ function cmdDoctor(path) {
     if (st.fetchError) fix(`Can't check GitHub: ${st.fetchError}`);
     if (st.dirty) fix('Rulebook has uncommitted changes: `git -C <rulebook> stash` (UPDATING.md).');
     if (st.ahead) fix('Rulebook has local commits not on main: `git -C <rulebook> reset --hard @{u}`.');
-    if (st.behind && heldHere()) ok(`Rulebook held at ${st.commit} on purpose (rollback); \`upgrade\` moves forward`);
+    if (pinned()) ok(`Rulebook pinned at ${st.commit} on purpose (rollback); \`upgrade\` moves forward`);
     else if (st.behind) fix(`Rulebook is ${st.behind.split('\n').length} update(s) behind: \`git -C <rulebook> pull\`.`);
     if (!st.dirty && !st.ahead && !st.behind && !st.fetchError) ok('Rulebook matches main on GitHub');
     let hook = '';
@@ -725,18 +767,41 @@ export function exportTerms(ws, client) {
   const terms = new Set([client]);
   const text = (f) => (existsSync(join(ws, f)) ? read(join(ws, f)) : '');
   const ctx = text('context.md'); const inv = text('inventory.md');
+  const notes = [ctx, inv, text('rules.md'), text('decisions.md')].join('\n');
+  // People: the full name and each part of it ("Jane Smith", "Jane", "Smith").
   const people = ctx.split(/^## People\s*$/m).slice(1).map((s) => s.split(/^## /m)[0]).join('\n');
-  for (const l of people.split('\n')) { const n = l.replace(/^[-*]\s*/, '').split(/\s+[—–-]\s+/)[0].trim(); if (/^[A-Z][\w'.-]+( [A-Z][\w'.-]+)*$/.test(n)) terms.add(n); }
+  for (const l of people.split('\n')) {
+    const n = l.replace(/^[-*]\s*/, '').split(/\s+[—–-]\s+|\s*\(/)[0].trim();
+    if (!/^[A-Z][\w'.-]+( [A-Z][\w'.-]+)*$/.test(n)) continue;
+    terms.add(n);
+    for (const part of n.split(' ')) if (part.length >= 3) terms.add(part);
+  }
   for (const l of inv.split('\n')) { const cols = l.replace(/^- /, '').split(' · '); if (cols.length >= 4) terms.add(cols[2].split(' (')[0].trim()); }
-  // Resource-style names (two or more dashes) and domains, wherever the notes mention them.
-  for (const m of `${ctx}\n${inv}`.matchAll(/\b[a-z][a-z0-9]*(?:-[a-z0-9]+){2,}\b/g)) terms.add(m[0]);
-  for (const m of `${ctx}\n${inv}`.matchAll(/\b[a-z0-9-]+\.(?:onmicrosoft\.com|[a-z0-9-]+\.(?:com|net|org|io|local|corp|internal))\b/gi)) terms.add(m[0]);
+  // Resource-style names (two or more dashes), wherever the notes mention them.
+  for (const m of notes.matchAll(/\b[a-z][a-z0-9]*(?:-[a-z0-9]+){2,}\b/g)) terms.add(m[0]);
+  // Hostnames and their domains (acme.com, vpn.acme.co.uk), minus vendor domains;
+  // a vendor host's tenant label counts (acme.atlassian.net -> acme).
+  for (const m of notes.matchAll(HOST_RE)) {
+    const host = m[0].toLowerCase(); const labels = host.split('.');
+    const n = /\.(co|com|org|net|gov|ac)\.[a-z]{2}$/.test(host) ? 3 : 2;
+    const domain = labels.slice(-n).join('.');
+    if (!VENDOR_DOMAINS.has(domain)) { terms.add(host); terms.add(domain); }
+    else if (labels.length > n && labels[0].length >= 3 && !/^(www|login|portal|docs|api|app|learn)$/.test(labels[0])) terms.add(labels[0]);
+  }
   return [...terms].filter((t) => t && t.length >= 3 && !/^(e\.g|i\.e|n\/a|-)$/i.test(t));
 }
+const HOST_RE = /\b(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+(?:com|net|org|io|co|uk|us|ca|au|de|fr|nl|in|eu|local|corp|internal|lan|cloud|ai|dev|app|gov|edu|biz|info)\b/gi;
+const VENDOR_DOMAINS = new Set(['microsoft.com', 'onmicrosoft.com', 'windows.net', 'azure.com', 'azure.net', 'azurewebsites.net', 'azure-api.net',
+  'visualstudio.com', 'office.com', 'sharepoint.com', 'live.com', 'amazonaws.com', 'amazon.com', 'aws.com', 'google.com', 'googleapis.com',
+  'github.com', 'githubusercontent.com', 'hashicorp.com', 'terraform.io', 'atlassian.net', 'atlassian.com', 'service-now.com', 'servicenow.com',
+  'wiz.io', 'datadoghq.com', 'jfrog.io', 'octopus.app', 'example.com']);
+// Identifier shapes. The optional third item weeds out look-alikes.
 const EXPORT_PATTERNS = [
   ['IPv4 address', /\b(?:\d{1,3}\.){3}\d{1,3}(?:\/\d{1,2})?\b/],
+  ['IPv6 address', /\b(?:[0-9a-f]{1,4}:){3,7}[0-9a-f]{1,4}\b|\b[0-9a-f]{1,4}(?::[0-9a-f]{1,4})*::(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4})*)?/i, (m) => /\d/.test(m)],
   ['GUID', /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i],
   ['email address', /\b[\w.+-]+@[\w-]+\.[\w.-]+\b/],
+  ['@handle', /(?:^|\s)@[A-Za-z][\w.-]{2,}/],
   ['Azure resource ID', /\/subscriptions\/[^\s/]+\/resourceGroups\//i],
   ['AWS ARN / account', /\barn:aws:|\b\d{12}\b/],
 ];
@@ -751,14 +816,17 @@ function cmdCheckExport(file) {
   const hits = [];
   read(file).split('\n').forEach((l, i) => {
     for (const t of terms) if (new RegExp(`(^|[^\\w-])${esc(t)}($|[^\\w-])`, 'i').test(l)) hits.push(`${slash(file)}:${i + 1}: "${t}" (this client's notes)`);
-    for (const [kind, re] of EXPORT_PATTERNS) { const m = l.match(re); if (m) hits.push(`${slash(file)}:${i + 1}: ${kind} "${m[0]}"`); }
+    for (const [kind, re, real] of EXPORT_PATTERNS) {
+      for (const m of l.matchAll(new RegExp(re.source, `${re.flags}g`))) if (!real || real(m[0])) { hits.push(`${slash(file)}:${i + 1}: ${kind} "${m[0].trim()}"`); break; }
+    }
   });
   if (hits.length) {
     console.log(`NOT client-free: ${hits.length} hit(s). Rewrite these generically, then run this again:`);
     for (const h of hits) console.log(`  ${h}`);
     process.exit(1);
   }
-  console.log(`Client-free check passed: none of ${terms.length} identifiers from this workspace, and no IPs, GUIDs, emails or resource IDs.`);
+  // A filter, not a certificate: it only knows what this workspace's notes name.
+  console.log(`No configured identifiers detected (${terms.length} names from this workspace's notes; IP, GUID, email, handle and resource-ID patterns). Read it once yourself before it leaves.`);
 }
 
 // Offboarding: stop refreshing a workspace on this machine (after it has been

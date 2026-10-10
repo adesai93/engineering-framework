@@ -79,7 +79,9 @@ function check(c, dir, reply, before) {
       return [st.length === 0, st.length ? `changed: ${st.join(', ')}` : ''];
     }
     case 'path-unchanged': {
-      const st = sh('git', ['status', '--porcelain', '--', c.path], dir).trim();
+      // Uncommitted changes and committed ones since the scenario started.
+      const st = [sh('git', ['status', '--porcelain', '--', c.path], dir).trim(),
+        sh('git', ['diff', '--name-only', before.head, 'HEAD', '--', c.path], dir).trim()].filter(Boolean).join('\n');
       return [!st, st ? `changed under ${c.path}: ${st.replace(/\n/g, ', ')}` : ''];
     }
     case 'file-matches': {

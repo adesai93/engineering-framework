@@ -468,7 +468,7 @@
         },
         {
           "type": "reply-matches",
-          "regex": "(Client-free check passed|export check passed|check-export passed|client-free)"
+          "regex": "(No configured identifiers detected|export check passed|check-export passed|client-free)"
         },
         {
           "type": "file-matches",

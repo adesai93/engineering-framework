@@ -69,19 +69,25 @@ retro, so it stays identical everywhere:
   `git -C <rulebook> config --unset remote.origin.pushurl`.
 
 ## Going back a version
-If a new version misbehaves on a client laptop, go back to the previous one
-until it's fixed (your notes aren't touched):
+If a new version misbehaves on a client laptop, pin the previous release until
+it's fixed (your notes aren't touched). This works with any older version's
+updater, because a pinned (detached) checkout has nothing newer to compare to:
 ```bash
-git -C ~/engineering-framework log --oneline -5
-git -C ~/engineering-framework reset --hard <previous commit>
-git -C ~/engineering-framework config engfw.hold <previous commit>
+git -C ~/engineering-framework log --oneline -5 origin/main
+git -C ~/engineering-framework switch --detach <previous release commit>
 node ~/engineering-framework/tools/workspace.mjs refresh
 ```
-`engfw.hold` tells the tools the older version is on purpose. Log what went
-wrong (feedback: ...). The next `upgrade` brings you forward again and clears
-the hold. Hand edits to generated agent files are kept
-in each workspace's .engfw-backup/ before an update replaces them; VS Code
-workspace files and Cursor permissions are merged, not replaced.
+Log what went wrong (feedback: ...). To move forward again once the fix is on
+main:
+```bash
+git -C ~/engineering-framework switch main
+node ~/engineering-framework/tools/workspace.mjs upgrade
+```
+Hand edits to generated agent files are kept in each workspace's
+.engfw-backup/<date-time>/ before an update replaces them (and copies of every
+changed generated file when edits can't be told apart, e.g. the first update
+from an older version); VS Code workspace files and Cursor permissions are
+merged, not replaced.
 
 ## If something goes wrong
 - "Repository not found" / "Authentication failed": the client account is

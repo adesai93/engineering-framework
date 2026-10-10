@@ -70,7 +70,7 @@ test('paths: workspaces never nest or share repos', () => {
   ok(wsmjs(['new', 'beta', B, '--tools', 'claude']).code === 0, 'second workspace failed');
   mkdirSync(join(A, 'repos', 'app'), { recursive: true });
   const r2 = wsmjs(['update', B, '--repos', join(A, 'repos', 'app')]);
-  ok(r2.code !== 0 && /inside another workspace/.test(r2.out), `shared repo not refused: ${r2.out}`);
+  ok(r2.code !== 0 && /overlaps another workspace/.test(r2.out), `shared repo not refused: ${r2.out}`);
 });
 
 test('update: hand edits survive (VS Code workspace, Cursor permissions, Claude settings, notes)', () => {
@@ -98,15 +98,67 @@ test('update: hand edits survive (VS Code workspace, Cursor permissions, Claude 
   ok(rd(join(A, 'context.md')).includes('MY CONTEXT LINE'), 'notes touched');
 });
 
+// Every kept copy of <rel> in a workspace's .engfw-backup, oldest first.
+const copies = (ws, rel) => (existsSync(join(ws, '.engfw-backup')) ? readdirSync(join(ws, '.engfw-backup')).sort() : [])
+  .map((d) => join(ws, '.engfw-backup', d, rel)).filter(existsSync).map(rd);
+
 test('update: a hand-edited generated file is kept in .engfw-backup before it is replaced', () => {
   const p = join(A, '.claude/agents/engineer.md');
   appendFileSync(p, '\nMY AGENT EDIT\n');
   const r = wsmjs(['update', A]);
   ok(r.code === 0 && /had local edits/.test(r.out), `no edit notice: ${r.out}`);
   ok(!rd(p).includes('MY AGENT EDIT'), 'generated file not regenerated');
-  ok(rd(join(A, '.engfw-backup', today, '.claude/agents/engineer.md')).includes('MY AGENT EDIT'), 'edit not kept');
+  ok(copies(A, '.claude/agents/engineer.md').some((t) => t.includes('MY AGENT EDIT')), 'edit not kept');
   const r2 = wsmjs(['update', A]);
-  ok(!/had local edits/.test(r2.out), 'second update flagged edits again');
+  ok(!/had local edits|couldn't tell/.test(r2.out), 'second update flagged edits again');
+});
+
+test('update: two edits on the same day are both kept (a new backup folder per update)', () => {
+  const p = join(A, '.claude/agents/engineer.md');
+  appendFileSync(p, '\nFIRST EDIT\n'); wsmjs(['update', A]);
+  appendFileSync(p, '\nSECOND EDIT\n'); wsmjs(['update', A]);
+  const kept = copies(A, '.claude/agents/engineer.md');
+  ok(kept.some((t) => t.includes('FIRST EDIT')) && kept.some((t) => t.includes('SECOND EDIT')), 'an earlier copy was overwritten');
+});
+
+test('update: first update from a pre-0.15 workspace keeps hand edits it cannot verify', () => {
+  const C = join(TMP, 'client-c');
+  ok(wsmjs(['new', 'gamma', C, '--tools', 'claude']).code === 0, 'new failed');
+  const cfgPath = join(C, '.engineering-framework.json'); const cfg = json(cfgPath);
+  delete cfg.generated; delete cfg.generatedCommit; writeFileSync(cfgPath, JSON.stringify(cfg)); // as v0.14 left it
+  appendFileSync(join(C, 'AGENTS.md'), '\nMY AGENTS EDIT\n');
+  let r = wsmjs(['update', C]);
+  ok(r.code === 0 && /couldn't tell whether/.test(r.out), `no notice: ${r.out}`);
+  ok(copies(C, 'AGENTS.md').some((t) => t.includes('MY AGENTS EDIT')), 'pre-0.15 edit lost');
+  // An older updater ran since (it rewrites "commit" but not the hashes): same caution.
+  const c2 = json(cfgPath); c2.commit = 'abc1234'; writeFileSync(cfgPath, JSON.stringify(c2));
+  appendFileSync(join(C, 'CLAUDE.md'), '\nMY CLAUDE EDIT\n');
+  r = wsmjs(['update', C]);
+  ok(copies(C, 'CLAUDE.md').some((t) => t.includes('MY CLAUDE EDIT')), 'edit lost after an older updater ran');
+  r = wsmjs(['update', C]);
+  ok(!/couldn't tell|had local edits/.test(r.out), `clean update still flagged: ${r.out}`);
+});
+
+test('update: a VS Code workspace file with comments keeps its settings; an unreadable one is left alone', () => {
+  const cw = join(A, 'acme.code-workspace'); const c = json(cw);
+  const jsonc = JSON.stringify(c, null, 2).replace('"settings": {', '"settings": {\n    // my font\n    "editor.tabSize": 3,');
+  writeFileSync(cw, jsonc.replace(/\n}$/, ',\n}'));
+  let r = wsmjs(['update', A]);
+  ok(r.code === 0 && json(cw).settings['editor.tabSize'] === 3 && json(cw).settings['editor.fontSize'] === 14, `settings lost: ${r.out}`);
+  ok(copies(A, 'acme.code-workspace').some((t) => t.includes('// my font')), 'commented original not kept');
+  writeFileSync(cw, '{ this is not json');
+  r = wsmjs(['update', A]);
+  ok(r.code === 0 && /SKIPPED acme\.code-workspace/.test(r.out) && rd(cw) === '{ this is not json', `broken file touched: ${r.out}`);
+  writeFileSync(cw, JSON.stringify(c, null, 2)); wsmjs(['update', A]);
+});
+
+test('paths: two clients can never share an external repos folder (or one inside the other)', () => {
+  const shared = join(TMP, 'shared-repos'); mkdirSync(join(shared, 'team', 'app'), { recursive: true });
+  ok(wsmjs(['new', 'delta', join(TMP, 'client-d'), '--tools', 'claude', '--repos', join(shared, 'team')]).code === 0, 'first client failed');
+  for (const r of [join(shared, 'team'), join(shared, 'team', 'app'), shared]) {
+    const res = wsmjs(['new', 'epsilon', join(TMP, 'client-e'), '--tools', 'claude', '--repos', r]);
+    ok(res.code !== 0 && /another client's repos folder/.test(res.out), `${r} not refused: ${res.out}`);
+  }
 });
 
 test('update: template folders added since the workspace was made come back', () => {
@@ -161,18 +213,22 @@ test('backup: a failed bundle is never recorded as a backup', () => {
 
 test('check-export: catches this client\'s names and identifier shapes, passes clean text', () => {
   appendFileSync(join(A, 'inventory.md'), '\n- prd · vnet · vnet-spoke-orders-prd-eus2 · sub-prd/rg-net · 10.40.8.0/22 · net team · - · az graph · 2026-10-10\n');
-  appendFileSync(join(A, 'context.md'), '\n## People\nJane Smith — network lead — firewall changes\n');
+  appendFileSync(join(A, 'context.md'), '\n## People\nJane Smith — network lead — firewall changes\n\nPortal: https://fabrikam-corp.com/wiki and tenant contosoplc.onmicrosoft.com, tickets at globex.atlassian.net\n');
   mkdirSync(join(A, 'feedback'), { recursive: true });
   const f = join(A, 'feedback/2026-W41.md');
   for (const [text, why] of [['the vnet-spoke-orders-prd-eus2 peering broke', 'inventory name'], ['asked Jane Smith twice', 'person'],
-    ['route to 10.40.8.4 failed', 'IP'], ['tenant 3f2a1b4c-1111-2222-3333-444455556666', 'GUID'], ['the acme team said', 'client name']]) {
+    ['Jane said to wait', 'first name only'], ['see fabrikam-corp.com for the runbook', 'two-part domain'],
+    ['logged in to contosoplc.onmicrosoft.com', 'tenant host'], ['the globex Jira board', 'tenant label of a vendor host'],
+    ['route to 10.40.8.4 failed', 'IPv4'], ['route to fd00:40:8::4 failed', 'IPv6'], ['ask @jsmith', 'handle'],
+    ['tenant 3f2a1b4c-1111-2222-3333-444455556666', 'GUID'], ['the acme team said', 'client name']]) {
     writeFileSync(f, `# Report\n${text}\n`);
     const r = wsmjs(['check-export', 'feedback/2026-W41.md'], A);
     ok(r.code !== 0 && /NOT client-free/.test(r.out), `missed ${why}: ${r.out}`);
   }
-  writeFileSync(f, '# Report\nA user corrected the agent twice about a <vnet> peering. Suggested change: agents/team.md.\n');
+  // Generic text, vendor docs links, PowerShell static calls and times are not identifiers.
+  writeFileSync(f, '# Report\nA user corrected the agent twice about a <vnet> peering at 10:30:00. See learn.microsoft.com and use [Net.ServicePointManager]::SecurityProtocol. Suggested change: agents/team.md.\n');
   const r = wsmjs(['check-export', 'feedback/2026-W41.md'], A);
-  ok(r.code === 0 && /check passed/.test(r.out), `clean report flagged: ${r.out}`);
+  ok(r.code === 0 && /No configured identifiers detected/.test(r.out) && /Read it once yourself/.test(r.out), `clean report flagged: ${r.out}`);
 });
 
 test('rulebook untouched: no hook or registry written by tests', () => {

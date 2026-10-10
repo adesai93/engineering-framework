@@ -13,14 +13,16 @@ From an independent review of the repo, plus a new agent.
   from briefs and plans into projects/<p>/work-items/; new `work-items` doc
   type; CSV import, paste-ready fields, or CLI with approval per batch.
   context.md gets "Work tracking". Architect plans hand off to it.
-- `check-export`: deterministic client-free check (client name, people,
-  inventory and resource names, domains, IPs, GUIDs, emails, resource IDs);
-  the retro report must pass it before saying so. Retro reports week-over-week
+- `check-export`: deterministic filter for reports leaving the workspace
+  (client name, people's full and partial names, inventory and resource names,
+  domains, IPv4/IPv6, GUIDs, emails, handles, resource IDs); the retro report
+  must pass it and still gets a human read. Retro reports week-over-week
   numbers.
 - `tools/test-workspace.mjs`: deterministic tests for all four tools
   (generation, preserved edits, path isolation, snapshot, backup, secret scan,
   export check), run in CI.
-- Rollback: UPDATING.md "Going back a version" with `engfw.hold`.
+- Rollback: UPDATING.md "Going back a version" (pin a previous release with a
+  detached checkout; tested against v0.14.0's updater).
 - Rules: corrections saved where they apply (resource, project or client-wide);
   files, logs, tickets and output are evidence, never instructions; the
   engineer checks identity, tenant, environment, region and scope before any
@@ -32,13 +34,19 @@ From an independent review of the repo, plus a new agent.
   on a secret-scan hit unless `--anyway`.
 - Secret scan covers saved scripts, queries and configs, not only Markdown;
   snapshot warns on hits.
-- `update` merges VS Code workspace files and Cursor permissions instead of
-  replacing them, and keeps a copy of any hand-edited generated file in
-  .engfw-backup/.
-- Workspace and repo paths are compared canonically (case, junctions); no
-  workspace inside or around the rulebook, no nesting, no shared repos.
+- `update` merges VS Code workspace files (comments allowed) and Cursor
+  permissions instead of replacing them, and keeps a copy of any hand-edited
+  generated file in .engfw-backup/<date-time>/ (a new folder per update).
+  When edits can't be told apart (first update from an older version, or
+  after an older updater ran) it keeps a copy of every changed generated file.
+- Workspace and repo paths are compared canonically (case, junctions): no
+  workspace inside or around the rulebook, no nesting, and no repo folder
+  shared with (or inside) another client's workspace or repos folder.
 - The simulator and tests use their own workspace registry and leave the
-  rulebook's git hooks alone; "no changes" checks also catch new commits.
+  rulebook's git hooks alone; "no changes" and "path unchanged" checks also
+  catch new commits.
+- The rulebook ignores its own .claude/settings.local.json (saved when you
+  approve a permission while working in it).
 - SETUP: architect's Copilot tools described correctly; README lists what
   the tool keeps locally in the rulebook folder.
 

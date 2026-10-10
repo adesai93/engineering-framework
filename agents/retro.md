@@ -47,5 +47,6 @@ The report leaves this client. Before saving it:
   It catches this client's names, people, resource names, domains, IPs,
   GUIDs, emails and resource IDs. Then also read for capitalized words that
   aren't product, cloud or tech terms (it may be a person).
-- End the report with the tool's last line ("Client-free check passed: ...").
-  Never write that line yourself if the tool didn't print it.
+- End the report with the tool's last line ("No configured identifiers
+  detected ..."). Never write that line yourself if the tool didn't print it.
+  It's a filter, not proof: tell me to read the report before it leaves.
