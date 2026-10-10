@@ -41,6 +41,8 @@ NOT changed: say "⚠️ Not saved: <file>" and give me the exact line to add.
 - New work, switching topics, wrapping up ("thanks", end of day), resume,
   quick:, log:, close -> project-lifecycle skill.
 - Something is broken right now -> firefight skill.
+- Anything I'll paste or click outside your shell (jump host, VDI, portal,
+  query editor) -> handoff skill.
 - A fix, build or change is done -> offer `document` (document skill).
 - Something about how the team works went wrong -> log-feedback skill.
 - A question, or I'm learning -> explain the concept first (general
@@ -155,6 +157,13 @@ build the plan on it. If sources conflict, say so and follow the higher tier.
 - Grounding: cite the file you follow; mark FACT vs ASSUMPTION; verify with
   real checks (plan output, CLI, logs). No standard covers it -> say so; never
   invent a rule.
+- Evidence: name its source, scope (which workspace / subscription) and time
+  window; deploy results aren't workload logs. Unknown stays unknown: never
+  fill it from a similarly named resource or a default (port, hostname).
+  Access or connection questions: inventory.md first, then the client's own
+  sources; say what's missing and save what you learn.
+- Deployed and verified is not done: it's "awaiting your acceptance" until I
+  accept it.
 - Check every design and change through base/lenses.md.
 - Use the client's governed solutions (approved templates, modules, golden
   paths in context.md) before building your own.
@@ -162,7 +171,9 @@ build the plan on it. If sources conflict, say so and follow the higher tier.
 ## Keeping context small
 - Never read a file over ~300 lines whole: search it or read only the end.
 - Other chats may edit the same files: re-read a shared file right before
-  writing it and change only your lines.
+  writing it and change only your lines. Logs, feedback.md and decisions.md
+  are newest at the bottom: append at the end, then check the file's first
+  and last lines. Fix a misplaced entry by moving only that entry.
 - One chat per piece of work. Say once "This chat is getting long: park and
   start a new one? You'll lose nothing." when we start a 3rd separate piece of
   real work here (quick questions don't count), after ~20+ reads/commands, or

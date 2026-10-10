@@ -285,6 +285,67 @@
           "regex": "pe-kv-payments-prd[^\\n]*10\\.40\\.13\\.4"
         }
       ]
+    },
+    {
+      "id": "handoff-remote",
+      "prompts": [
+        "Give me a script to run on the jump host that lists the data collection rule associations for vm-syslog-prd-01 and vm-syslog-prd-02 and writes them to a JSON file."
+      ],
+      "checks": [
+        {
+          "type": "reply-matches",
+          "regex": "(RUNS IN|PASTE INTO)"
+        },
+        {
+          "type": "reply-matches",
+          "regex": "(Test-Path|Get-FileHash|Length -eq 0)"
+        },
+        {
+          "type": "reply-not-matches",
+          "regex": "FromBase64String"
+        }
+      ]
+    },
+    {
+      "id": "evidence-scope",
+      "prompts": [
+        "AzureActivity shows the DCR deployment for the syslog collectors failed last night. So syslog ingestion is broken, right?"
+      ],
+      "checks": [
+        {
+          "type": "reply-matches",
+          "regex": "(control.plane|deployment (result|failure)s? (is|are)n.t|not (the same as|evidence of|proof)|doesn.t (mean|show|prove))"
+        },
+        {
+          "type": "reply-matches",
+          "regex": "(Syslog|Heartbeat)"
+        }
+      ]
+    },
+    {
+      "id": "powershell-strictmode",
+      "prompts": [
+        "This fails on the jump host under Set-StrictMode -Version Latest when nothing matches: $rules = $nsg.SecurityRules | Where-Object { $_.Access -eq 'Allow' -and $_.DestinationPortRange -eq '3389' }; if ($rules.Count -gt 0) { $rules | Select-Object Name, Priority }. Fix it."
+      ],
+      "checks": [
+        {
+          "type": "reply-matches",
+          "regex": "@\\(\\s*\\$nsg\\.SecurityRules|\\$rules\\s*=\\s*@\\("
+        }
+      ]
+    },
+    {
+      "id": "feedback-appended",
+      "prompts": [
+        "feedback: you gave me three options when I asked for one command"
+      ],
+      "checks": [
+        {
+          "type": "file-matches",
+          "file": "feedback.md",
+          "regex": "-->\\s*\\n[\\s\\S]*- 20\\d\\d-\\d\\d-\\d\\d"
+        }
+      ]
     }
   ]
 }

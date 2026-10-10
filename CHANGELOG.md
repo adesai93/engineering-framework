@@ -5,6 +5,32 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.14.0] - 2026-10-10
+From a second client's week of feedback.
+### Added
+- `handoff` skill for anything the user pastes or clicks elsewhere (jump
+  host, VDI, air-gapped, portal, query editor): label where each block runs,
+  complete content every time, one block that writes + checks + runs a
+  script, plain text only, standalone queries, expected output outside code,
+  fresh-output checks, test before sending. New context.md section "Where
+  commands run".
+- PowerShell StrictMode traps (empty and single collections, Boolean checks,
+  piping foreach, native JSON output, optional properties, deltas, nested
+  JSON, newlines) and "test with empty, single and nested data".
+- Azure CLI / KQL parameter contracts: `az graph query -q` vs `--query`,
+  workspace GUID vs ARM ID, workbook `canFetchContent=true`, optional fields;
+  queries state their workspace and window.
+- Evidence rule: name source, scope and window; deploy results aren't
+  workload logs; unknowns stay unknown (no borrowed data or defaults); access
+  questions start from inventory.md. Host lines record endpoint, port,
+  connection path, login source and credential location.
+- "Awaiting your acceptance" until the user accepts; deployed isn't done.
+- Discovery is breadth-first with a "ready" definition; non-blocking
+  anomalies get parked.
+### Fixed
+- Logs and feedback.md: append at the end, check both ends of the file, fix
+  only a misplaced entry.
+
 ## [0.13.0] - 2026-10-10
 From week-2 client feedback.
 ### Added

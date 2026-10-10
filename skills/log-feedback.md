@@ -4,7 +4,8 @@ description: Log a problem with how the agent team works (not the engineering wo
 ---
 # Log feedback on the team
 
-Append one entry to feedback.md in the same turn and say "Feedback logged".
+Append one entry at the END of feedback.md (below the header and the
+existing entries) in the same turn and say "Feedback logged".
 Log it when: I corrected something the rulebook should have covered; you
 misread me or a flow didn't fit; a playbook, template or rule was missing or
 in the way; I sound frustrated or repeat myself; you see a better way to work.

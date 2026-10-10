@@ -13,7 +13,12 @@ searched by environment, address, repo or owner:
 - prd · vnet · vnet-spoke-orders-prd-eus2 · sub-prd-corp/rg-net-prd · 10.40.8.0/22 · network team · platform-iac/stacks/orders · az graph · 2026-10-10
 - prd · private-endpoint · pe-sql-orders · sub-prd-corp/rg-orders-prd · 10.40.8.36 -> sql-orders-prd.database.windows.net · orders team · platform-iac/modules/sql · az graph · 2026-10-10
 - all · repo · platform-iac · ADO platform · deploys network, monitoring, backup · platform team · - · README · 2026-10-10
+- prd · host · vm-jump-prd-01 (service: orders) · sub-prd-corp/rg-mgmt-prd · RDP 10.40.1.10:3390 via Bastion; login: Entra ID (PIM group); credential: none stored · ops team · - · checked live · 2026-10-10
 </example>
+
+Hosts: record the owning service, endpoint (IP or name, and port), how to
+connect, the login identity source and where the credential lives (never the
+credential), and when it was last verified.
 
 Per-environment maps (network ranges, key endpoints, what runs there, linked
 decisions) live in reference/env-<env>.md; the env-map skill builds them.

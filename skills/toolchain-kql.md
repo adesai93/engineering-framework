@@ -14,8 +14,16 @@ Write queries that are cheap and checkable:
   case-insensitive matches; `let` for reused values; `parse_json()` for
   dynamic fields.
 - Test read-only (the Logs blade, or `az monitor log-analytics query -w
-  <workspace-id> --analytics-query "<kql>"`) and give the row count or a
-  sample before calling it done.
+  <workspace-id> --analytics-query "<kql>"`; `-w` is the workspace GUID, not
+  the ARM ID) and give the row count or a sample before calling it done.
+- Every query you hand over is complete and standalone (all `let`
+  statements included, no "replace the tail"), and states its scope: which
+  workspace (name and ID) and time window. With more than one workspace
+  (regional and global), confirm which one the results came from before
+  interpreting them.
+- Say what the data is: control-plane activity (AzureActivity, deployment
+  results) is not workload telemetry. "The service failed" needs the
+  source table, severity and window that show it.
 - Sentinel analytics rules: match query period and frequency, set entity
   mappings, and check alert volume over the last 7 days before enabling.
 - Changes to a production rule follow the client's change path (context.md).

@@ -17,6 +17,18 @@ Read-only by default:
   `az network nic list-effective-nsg`.
 - Save durable results to inventory.md (names, IDs, CIDRs), never keys.
 
+Parameter contracts (check the format a command expects before handing it
+over; a wrong ID shape gives a misleading NotFound):
+- `az graph query -q <KQL>` takes the KQL; the global `--query` is a
+  JMESPath filter on the output (`--query data`), never the KQL itself.
+- Log Analytics queries (`az monitor log-analytics query -w`) take the
+  workspace ID (GUID, `customerId`), not the ARM resource ID.
+- Workbooks via `az rest`: add `canFetchContent=true` to the GET or
+  `properties.serializedData` is missing. Stop on a missing or empty field
+  instead of writing an empty file.
+- Optional response fields may be absent: require only what the API
+  guarantees (the resource ID), check the rest when present.
+
 Changes (create, update, delete, role assignment create) go through the
 client's IaC or change path; deletes and RBAC widening are STOP zones. Never
 echo connection strings or the output of `az storage account keys list`.
