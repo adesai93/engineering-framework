@@ -15,7 +15,7 @@ From a second review: fixes, one source per rule, and a way to keep the team sma
   copy for tool routing.
 - team.md: the two precedence statements are merged into "Which information
   to trust" (tiers 1-3 outrank the rulebook; nothing outranks a STOP zone).
-- STOP zones work without plan mode: tools that don't have it make no change
+- base/principles/stop-zones.md works without plan mode: tools without it make no change
   and run nothing that changes state until I say yes.
 ### Fixed
 - handoff skill: scripts are written with explicit bytes (UTF-8 with BOM,
