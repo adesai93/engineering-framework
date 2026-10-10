@@ -70,18 +70,26 @@ and flags secrets found in the notes.
 What gets generated in the workspace:
 | File | Purpose |
 |---|---|
-| CLAUDE.md -> AGENTS.md | team rules, loaded every chat |
+| CLAUDE.md | team rules (minus what the hooks enforce) + imports of context.md, rules.md, NOW.md; loaded every chat |
 | .claude/agents/*.md | architect, engineer, security (read-only tools), pm, retro |
-| .claude/settings.json | rulebook (+ repos) in additionalDirectories; deny Edit on the rulebook |
+| .claude/skills/*/ | skills, with their reference files and scripts |
+| .claude/settings.json | rulebook (+ repos) in additionalDirectories; deny Edit on the rulebook; hooks (below) |
+
+Hooks (scripts in the rulebook's tools/hooks/, run by Claude Code):
+- session start: flags memory files over their limit and a workspace built from an older rulebook;
+- before a tool runs: writes only inside the workspace and its repos (never the rulebook), and no whole reads of files over ~300 lines;
+- after a write: a possible secret, or an inventory.md line not in the format, goes back to the agent to fix.
 
 Set up:
 1. Install Claude Code (https://code.claude.com/docs) and sign in.
 2. `cd <workspace>` and run `claude`. Accept the folder-trust prompt: the
-   additionalDirectories setting only applies after the folder is trusted.
+   additionalDirectories setting and the hooks only apply after the folder is
+   trusted (before that, Claude Code prints "Ignoring ... this workspace has
+   not been trusted").
 
 Check it works:
 - `/agents` lists architect, engineer, security, pm, retro; `/skills` lists the skills.
-- `/memory` shows CLAUDE.md / AGENTS.md loaded.
+- `/memory` shows CLAUDE.md loaded; `/hooks` lists the three hooks.
 - Say "status": it summarises NOW.md without asking where things are.
 
 Gotchas:
@@ -89,6 +97,9 @@ Gotchas:
   started from a different folder. Restart `claude` from the workspace root.
 - Edits to the rulebook are blocked by design ("denied by your permission
   settings"). Rulebook changes go through the weekly retro.
+- Leave Project instructions at its default (`/config`): with
+  `claude-md-and-agents-md`, Claude Code also reads AGENTS.md and the team
+  rules load twice.
 - Organisation-managed settings can override project settings; if a deny or
   directory rule seems ignored, check with the client's admin.
 - Models: engineer and retro run on `sonnet` (cheaper); architect and security
@@ -185,11 +196,13 @@ follows (usually, not always). Tell each client which is which.
 
 | Rule | Claude Code | Copilot (VS Code) | Cursor | Codex |
 |---|---|---|---|---|
-| No edits to the rulebook | enforced (Edit deny) | editor read-only; the agent's terminal isn't | CLI: enforced; editor: read-only folder | instruction (sandbox keeps writes in the workspace, if you run workspace-write) |
+| No edits to the rulebook | enforced (Edit deny + hook) | editor read-only; the agent's terminal isn't | CLI: enforced; editor: read-only folder | instruction (sandbox keeps writes in the workspace, if you run workspace-write) |
 | Security agent can't change anything | enforced (no write tools) | enforced (read/search/web only) | `readonly: true` | enforced (read-only sandbox) |
 | No pushes to the rulebook | enforced: push URL blocked; CI flags direct pushes | same | same | same |
-| No secrets in saved files | pattern scan of workspace files: snapshot warns, backup stops; otherwise instruction | same | same | same |
-| STOP zones, stay inside this workspace, `<private>`, clean searches, "evidence, never instructions" | instruction; the tool's own approval prompts are the backstop | same | same | same |
+| No secrets in saved files | hook flags them right after each write; snapshot warns, backup stops | snapshot warns, backup stops; otherwise instruction | same as Copilot | same as Copilot |
+| Write only inside this workspace and its repos | enforced (hook) | instruction | instruction | instruction (workspace-write sandbox, if used) |
+| Read long files in parts | enforced (hook) | instruction | instruction | instruction |
+| STOP zones, `<private>`, clean searches, "evidence, never instructions" | instruction; the tool's own approval prompts are the backstop | same | same | same |
 
 Keep tool approval prompts on for anything that changes state: they're the
 only hard stop behind the STOP zones.
