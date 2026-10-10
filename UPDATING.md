@@ -71,7 +71,15 @@ retro, so it stays identical everywhere:
 ## Going back a version
 If a new version misbehaves on a client laptop, pin the previous release until
 it's fixed (your notes aren't touched). This works with any older version's
-updater, because a pinned (detached) checkout has nothing newer to compare to:
+updater, because a pinned (detached) checkout has nothing newer to compare to.
+
+First snapshot each workspace (older updaters don't keep hand edits to
+generated files; the snapshot keeps them in the workspace's local history),
+from the workspace folder:
+```bash
+node ~/engineering-framework/tools/workspace.mjs snapshot "before rollback"
+```
+Then pin the previous release:
 ```bash
 git -C ~/engineering-framework log --oneline -5 origin/main
 git -C ~/engineering-framework switch --detach <previous release commit>
