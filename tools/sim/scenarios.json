@@ -215,6 +215,7 @@
     },
     {
       "id": "close-folds-back",
+      "allow": ["Bash(git:*)", "Bash(mv:*)"],
       "prompts": [
         "close wiz-rollout: all 4 subs are connected now, sub-connectivity done 2026-10-04, decided to keep Wiz PR scans blocking only Critical."
       ],
