@@ -28,10 +28,32 @@ included by default; to include only what a client uses:
 
 ## Skills (all tools)
 Long procedures (firefight, project lifecycle, tidy, document, log-feedback,
-onboard, update-team, check-setup) are skills in `.claude/skills/`, which
+env-map, onboard, update-team, check-setup) are skills in `.claude/skills/`, which
 Claude Code, Copilot in VS Code and Cursor all read. Only their names and
 one-line descriptions sit in context until one is needed; the always-loaded
 team rules stay small (~2.3k tokens). The last three run only when you ask.
+
+## Docs servers (optional, per client)
+Official-docs MCP servers give the agents current vendor docs instead of
+memory. They receive only the search text, and the team rule is to search in
+generic terms (no client names, IPs or resource IDs). Add one only if the
+client allows outbound calls to that vendor; none needs a client credential.
+- Microsoft Learn (Azure, PowerShell, KQL, Bicep, Azure DevOps):
+  `https://learn.microsoft.com/api/mcp` (remote, no sign-in)
+- AWS Knowledge: `https://knowledge-mcp.global.api.aws` (remote, no sign-in);
+  or the local AWS Documentation MCP server (awslabs/mcp).
+- HashiCorp Terraform (registry docs): local, `docker run -i --rm
+  hashicorp/terraform-mcp-server`. Leave out any TFE/HCP token.
+
+Add them per workspace so they stay with that client:
+- Claude Code, from the workspace folder:
+  `claude mcp add --transport http microsoft-learn https://learn.microsoft.com/api/mcp`
+- Copilot (VS Code): `.vscode/mcp.json` in the workspace:
+  `{"servers": {"microsoft-learn": {"type": "http", "url": "https://learn.microsoft.com/api/mcp"}}}`
+- Cursor: `.cursor/mcp.json` in the workspace:
+  `{"mcpServers": {"microsoft-learn": {"url": "https://learn.microsoft.com/api/mcp"}}}`
+- Codex: `~/.codex/config.toml` (applies to every workspace on the laptop):
+  `[mcp_servers.microsoft-learn]` then `url = "https://learn.microsoft.com/api/mcp"`
 
 ## Backups
 Each workspace is the only copy of that client's memory. Once per client:
@@ -181,9 +203,10 @@ their own runs. For commands you type:
   the per-command form.
 
 ## Sign-ins: "Repository not found" / many browser logins
-- "Repository not found" when pulling the rulebook = the wrong GitHub account
-  is active (often the client work account). Switch accounts, or use the
-  read-only token clone (UPDATING.md). It is not a network problem.
+- "Repository not found" when pulling the rulebook = the client work account
+  is the active GitHub account. Don't switch: tell the rulebook which account
+  owns it, once per laptop (UPDATING.md "Pulling with your own account").
+  It is not a network problem.
 - Read-only discovery across many CLI profiles: ask the agent to plan the
   logins first (discover-a-client playbook step 2) so you approve them in one
   batch, and prefer one shared SSO session over a login per profile.

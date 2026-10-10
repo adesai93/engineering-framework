@@ -21,3 +21,5 @@ literal secret in `ConvertTo-SecureString -AsPlainText`; use managed identity
 PowerShell 7 syntax such as `&&` and `?:`.
 
 Official sources: learn.microsoft.com/powershell; learn.microsoft.com/powershell/azure.
+Docs server if set up (SETUP.md): Microsoft Learn MCP. Search in generic
+terms only: no client names, IPs or resource IDs.

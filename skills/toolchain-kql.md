@@ -22,3 +22,5 @@ Write queries that are cheap and checkable:
 
 Official sources: learn.microsoft.com/kusto/query; Microsoft Sentinel and
 Azure Monitor docs.
+Docs server if set up (SETUP.md): Microsoft Learn MCP. Search in generic
+terms only: no client names, IPs or resource IDs.

@@ -20,3 +20,5 @@ approvals); removing or skipping a gate is a STOP zone (gate weakening).
 
 Official sources: learn.microsoft.com/azure/devops/pipelines;
 docs.github.com/actions.
+Docs server if set up (SETUP.md): Microsoft Learn MCP (Azure Pipelines).
+Search in generic terms only: no client names, IPs or resource IDs.

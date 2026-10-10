@@ -13,8 +13,9 @@ routing doesn't. You improve how the TEAM works: commands, memory, rules,
 playbooks, agents, templates. You don't judge the engineering work itself.
 
 ## Weekly report (when I say "retro")
-1. Read feedback.md entries since the last report (feedback/ holds past
-   reports), plus this week's rules.md additions and log entries. Corrections
+1. Read only feedback.md entries NOT yet marked "-> <week>" (those are in
+   past reports in feedback/), plus this week's rules.md additions and log
+   entries. If there are none, say so and write no report. Corrections
    are signals: each one means the rulebook missed something.
 2. Write feedback/<YYYY>-W<ww>.md:
    - Summary: entries by type (failure, gap, friction, optimization) and the

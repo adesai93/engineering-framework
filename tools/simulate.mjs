@@ -72,6 +72,10 @@ function check(c, dir, reply, before) {
       const st = sh('git', ['status', '--porcelain'], dir).split('\n').filter((l) => l && !l.includes('.claude/'));
       return [st.length === 0, st.length ? `changed: ${st.join(', ')}` : ''];
     }
+    case 'path-unchanged': {
+      const st = sh('git', ['status', '--porcelain', '--', c.path], dir).trim();
+      return [!st, st ? `changed under ${c.path}: ${st.replace(/\n/g, ', ')}` : ''];
+    }
     case 'file-matches': {
       const p = join(dir, c.file); const ok = existsSync(p) && new RegExp(c.regex, 'i').test(readFileSync(p, 'utf8'));
       return [ok, ok ? '' : `${c.file} lacks /${c.regex}/`];

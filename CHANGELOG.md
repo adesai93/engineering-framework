@@ -5,6 +5,31 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.13.0] - 2026-10-10
+From week-2 client feedback.
+### Added
+- `env-map` skill: maps an environment from read-only Azure Resource Graph
+  queries (VNets, subnets, peerings, private IPs, private endpoints, public
+  IPs, service endpoints) into reference/env-<env>.md with a Mermaid diagram,
+  plus inventory lines. AWS / GCP / Steampipe / InfraMap as options.
+- Structured inventory lines: `env · type · name · scope/ID · IP/CIDR/endpoint
+  · owner · repo/IaC path · source · date`, searchable by env, address, repo.
+- Repos table in the project brief (repo, what changes, branch). The engineer
+  states the target repo and branch before editing and asks before touching
+  an unlisted repo; notes never go into client repos.
+- Optional docs MCP servers (Microsoft Learn, AWS Knowledge, HashiCorp
+  Terraform) in SETUP.md and the toolchain skills; searches carry no client
+  names, IPs or resource IDs.
+- Pull the rulebook with the owner's GitHub account without switching the
+  active one: `git config engfw.githubUser <user>`, then `upgrade` / `doctor`
+  use that account's `gh` token for this repo only.
+### Fixed
+- `update` now adds template folders and files that are new in a version
+  (not just top-level files) and refreshes projects/_new.
+- The retro skips feedback entries already marked as covered by an earlier
+  report, so fixed items don't come back as new.
+- Close runs the snapshot as its own command so it stays pre-approved.
+
 ## [0.12.0] - 2026-10-04
 ### Added
 - OpenAI Codex support (`--tools codex`): AGENTS.md, .agents/skills (user-only

@@ -1,0 +1,7 @@
+// Private IPs on NICs (VMs and private endpoints)
+resources | where type =~ 'microsoft.network/networkinterfaces'
+| mv-expand c = properties.ipConfigurations
+| project nic=name, subscriptionId, resourceGroup, env=tostring(tags.environment),
+  ip=tostring(c.properties.privateIPAddress),
+  vnet=tostring(split(c.properties.subnet.id, '/')[8]), subnet=tostring(split(c.properties.subnet.id, '/')[10]),
+  vm=tostring(split(properties.virtualMachine.id, '/')[8]), pe=tostring(split(properties.privateEndpoint.id, '/')[8])

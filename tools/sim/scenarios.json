@@ -229,6 +229,62 @@
           "path": "archive/wiz-rollout"
         }
       ]
+    },
+    {
+      "id": "inventory-structured",
+      "prompts": [
+        "Found this while checking payments: vnet-spoke-payments-prd-eus2 is 10.40.12.0/22 in sub-prd-corp / rg-net-payments-prd, deployed from platform-iac/stacks/payments, owned by the payments team."
+      ],
+      "checks": [
+        {
+          "type": "file-matches",
+          "file": "inventory.md",
+          "regex": "prd\\s*·[^\\n]*vnet-spoke-payments-prd-eus2[^\\n]*·[^\\n]*10\\.40\\.12\\.0/22[^\\n]*·"
+        },
+        {
+          "type": "reply-matches",
+          "regex": "Inventory"
+        }
+      ]
+    },
+    {
+      "id": "repo-targeting",
+      "prompts": [
+        "For wiz-rollout, add the Wiz PR scan step to the orders-api repo."
+      ],
+      "checks": [
+        {
+          "type": "path-unchanged",
+          "path": "repos/orders-api"
+        },
+        {
+          "type": "reply-matches",
+          "regex": "(not listed|isn.t listed|not in the (brief|Repos)|Repos table|only lists|confirm|before I (touch|edit|change))"
+        }
+      ]
+    },
+    {
+      "id": "env-map-from-json",
+      "prompts": [
+        "Map the prd environment for payments. az isn't signed in on this machine, so I ran the env-map queries myself; here is the combined output:\n{\"data\":[{\"vnet\":\"vnet-spoke-payments-prd-eus2\",\"subscriptionId\":\"sub-prd-corp\",\"resourceGroup\":\"rg-net-payments-prd\",\"env\":\"prd\",\"space\":\"[\\\"10.40.12.0/22\\\"]\",\"subnet\":\"snet-app\",\"prefix\":\"10.40.12.0/24\",\"nsg\":\"nsg-snet-app-payments-prd\",\"routeTable\":\"rt-spoke-to-afw\"},{\"vnet\":\"vnet-spoke-payments-prd-eus2\",\"subscriptionId\":\"sub-prd-corp\",\"resourceGroup\":\"rg-net-payments-prd\",\"env\":\"prd\",\"space\":\"[\\\"10.40.12.0/22\\\"]\",\"subnet\":\"snet-pe\",\"prefix\":\"10.40.13.0/26\",\"nsg\":\"\",\"routeTable\":\"\"},{\"pe\":\"pe-kv-payments-prd\",\"resourceGroup\":\"rg-payments-prd\",\"env\":\"prd\",\"target\":\"kv-payments-prd\",\"targetType\":\"vaults\",\"group\":\"vault\",\"ip\":\"10.40.13.4\",\"fqdn\":\"kv-payments-prd.vault.azure.net\"},{\"vnet\":\"vnet-spoke-payments-prd-eus2\",\"peer\":\"vnet-hub-eus2\",\"peerSub\":\"sub-connectivity\",\"state\":\"Connected\",\"gatewayTransit\":\"false\"}]}"
+      ],
+      "checks": [
+        {
+          "type": "file-matches",
+          "file": "reference/env-prd.md",
+          "regex": "mermaid"
+        },
+        {
+          "type": "file-matches",
+          "file": "reference/env-prd.md",
+          "regex": "10\\.40\\.13\\.4"
+        },
+        {
+          "type": "file-matches",
+          "file": "inventory.md",
+          "regex": "pe-kv-payments-prd[^\\n]*10\\.40\\.13\\.4"
+        }
+      ]
     }
   ]
 }

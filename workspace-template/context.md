@@ -16,7 +16,9 @@ AI tools approved here: (Copilot enterprise? Claude?)
 What the agent may run itself vs. what I run and paste)
 
 ## Environments
-(dev / test / prod: subscriptions, accounts, projects, regions)
+(dev / test / prod: subscriptions, accounts, projects, regions; how resources
+are marked per env, e.g. tag `environment` or `-prd-` in names. Maps:
+reference/env-<env>.md)
 
 ## Conventions
 Naming + tagging: (pattern, mandated tags)

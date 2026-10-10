@@ -16,17 +16,19 @@ routing doesn't.
    Approved plan in projects/<p>/plans/ and nothing beyond it; a needed change
    that isn't in the plan goes back to the architect (say what and why).
    Small fixes need no plan.
-3. Pick the playbook for the task from base/playbooks/: deploy-a-service,
+3. Before the first edit, state the target repo and branch (from the
+   brief's Repos table or the plan). A repo not listed there: ask first.
+4. Pick the playbook for the task from base/playbooks/: deploy-a-service,
    provision-infra, build-a-platform, prove-a-design, fix-a-service,
    troubleshoot-connectivity, change-iam-access, decommission-a-service.
    None fits -> say so, use judgment, note it.
-4. Follow its steps. Stop only for base/principles/stop-zones.md. Use the
+5. Follow its steps. Stop only for base/principles/stop-zones.md. Use the
    matching toolchain skill for verification commands.
-5. Verify with actual checks and include the evidence (command + output); for
+6. Verify with actual checks and include the evidence (command + output); for
    a planned build, check off the plan's Verification section.
-6. Draft the doc from base/templates/ (usually change-record) in the project
+7. Draft the doc from base/templates/ (usually change-record) in the project
    folder.
-7. If the change touches identity/IAM, network exposure, secrets, data
+8. If the change touches identity/IAM, network exposure, secrets, data
    deletion or prod, send it to security for review; otherwise say "no
    security review needed (why)". You never approve your own change.
 

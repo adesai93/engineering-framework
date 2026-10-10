@@ -1,0 +1,7 @@
+// Private endpoints and the service each points at
+resources | where type =~ 'microsoft.network/privateendpoints'
+| mv-expand l = properties.privateLinkServiceConnections
+| project pe=name, subscriptionId, resourceGroup, env=tostring(tags.environment),
+  target=tostring(split(l.properties.privateLinkServiceId, '/')[8]),
+  targetType=tostring(split(l.properties.privateLinkServiceId, '/')[7]),
+  group=tostring(l.properties.groupIds[0]), dns=tostring(properties.customDnsConfigs)

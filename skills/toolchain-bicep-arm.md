@@ -23,3 +23,5 @@ files; `existing` to reference resources; pin API versions.
 
 Official sources: learn.microsoft.com/azure/azure-resource-manager/bicep;
 Microsoft's Azure skills / Azure MCP Server if the client allows them.
+Docs server if set up (SETUP.md): Microsoft Learn MCP. Search in generic
+terms only: no client names, IPs or resource IDs.

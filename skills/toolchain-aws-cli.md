@@ -22,3 +22,5 @@ credentials, secret values or SSM SecureString values.
 
 Official sources: docs.aws.amazon.com/cli; AWS agent plugins / MCP servers
 (github.com/awslabs/agent-plugins) if the client allows them.
+Docs server if set up (SETUP.md): AWS Knowledge MCP. Search in generic terms
+only: no client names, IPs or resource IDs.

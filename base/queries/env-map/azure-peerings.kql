@@ -1,0 +1,7 @@
+// VNet peerings
+resources | where type =~ 'microsoft.network/virtualnetworks'
+| mv-expand p = properties.virtualNetworkPeerings
+| where isnotempty(p)
+| project vnet=name, subscriptionId, peer=tostring(split(p.properties.remoteVirtualNetwork.id, '/')[8]),
+  peerSub=tostring(split(p.properties.remoteVirtualNetwork.id, '/')[2]),
+  state=tostring(p.properties.peeringState), gatewayTransit=tostring(p.properties.allowGatewayTransit)
