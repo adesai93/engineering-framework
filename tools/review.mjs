@@ -10,8 +10,9 @@
 // (round-<n>.reply.md) must exist: every finding fixed or disputed with a reason.
 // Exit 0 = pass (no P0/P1), 1 = changes requested, 2 = error, 3 = round cap reached.
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { ROOT } from './workspace.mjs';
 
 const args = process.argv.slice(2);
@@ -25,9 +26,21 @@ const env = { ...process.env }; delete env.OPENSSL_CONF;
 const git = (...a) => execFileSync('git', a, { cwd: ROOT, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 const die = (msg) => { console.error(`review: ${msg}`); process.exit(2); };
 
+function codexCommand() {
+  if (process.platform !== 'win32') return ['codex', []];
+  let shims = [];
+  try { shims = execFileSync('where.exe', ['codex.cmd'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).split(/\r?\n/).filter(Boolean); } catch { /* not on PATH */ }
+  for (const s of shims) {
+    const js = join(dirname(s), 'node_modules', '@openai', 'codex', 'bin', 'codex.js');
+    if (existsSync(js)) return [process.execPath, [js]];
+  }
+  return ['codex.exe', []]; // standalone install; a missing one fails with a clear error below
+}
+
 const branch = git('rev-parse', '--abbrev-ref', 'HEAD');
 if (branch === base) die(`on ${base}: build on a branch, then review it against ${base}`);
-const dir = join(ROOT, '.review', branch.replace(/[^\w.-]+/g, '_'));
+// Readable slug + hash of the real name, so feature/x and feature_x never share rounds.
+const dir = join(ROOT, '.review', `${branch.replace(/[^\w.-]+/g, '_')}-${createHash('sha1').update(branch).digest('hex').slice(0, 8)}`);
 const roundFile = (n) => join(dir, `round-${n}.json`);
 const replyFile = (n) => join(dir, `round-${n}.reply.md`);
 const rounds = () => (existsSync(dir) ? readdirSync(dir) : [])
@@ -101,10 +114,11 @@ if (args.includes('--dry-run')) { writeFileSync(join(dir, `round-${n}.prompt.md`
 console.log(`review: round ${n}/${max}, ${diff.split('\n').length} diff lines -> codex (read-only), usually 1-3 min...`);
 const out = join(dir, `round-${n}.raw.json`);
 const codexArgs = ['exec', '-s', 'read-only', '--ephemeral', '-C', ROOT, '--output-schema', schemaPath, '-o', out, ...(model ? ['-m', model] : []), '-'];
-// The npm install is a .cmd shim on Windows, which needs a shell: quote paths with spaces.
-const win = process.platform === 'win32';
-const res = spawnSync('codex', win ? codexArgs.map((a) => (/\s/.test(a) ? `"${a}"` : a)) : codexArgs,
-  { cwd: ROOT, env, input: prompt, encoding: 'utf8', shell: win, timeout: 15 * 60 * 1000, maxBuffer: 64 << 20 });
+// On Windows npm installs a .cmd shim, which only runs through cmd.exe (and cmd.exe
+// mangles &, %, ^ in paths). Run the shim's JS entry with node instead: no shell at all.
+const [bin, binArgs] = codexCommand();
+const res = spawnSync(bin, [...binArgs, ...codexArgs],
+  { cwd: ROOT, env, input: prompt, encoding: 'utf8', timeout: 15 * 60 * 1000, maxBuffer: 64 << 20 });
 if (res.error || res.status !== 0 || !existsSync(out)) {
   writeFileSync(join(dir, `round-${n}.log`), `${res.stdout || ''}\n${res.stderr || ''}`);
   die(`codex failed (${res.error?.message || `exit ${res.status}`}); output in ${join(dir, `round-${n}.log`)}. Signed in? Try \`codex login\`.`);
