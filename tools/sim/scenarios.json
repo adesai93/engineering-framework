@@ -325,16 +325,12 @@
     {
       "id": "powershell-strictmode",
       "prompts": [
-        "Write me a PowerShell function that takes NSGs from Get-AzNetworkSecurityGroup and returns the rules that allow 3389 inbound from any source. Just the code."
+        "This fails on the jump host under Set-StrictMode -Version Latest when nothing matches: $rules = $nsg.SecurityRules | Where-Object { $_.Access -eq 'Allow' -and $_.DestinationPortRange -eq '3389' }; if ($rules.Count -gt 0) { $rules | Select-Object Name, Priority }. Fix it."
       ],
       "checks": [
         {
           "type": "reply-matches",
-          "regex": "@\\("
-        },
-        {
-          "type": "reply-matches",
-          "regex": "(StrictMode|PSObject\\.Properties|\\$null -(eq|ne))"
+          "regex": "@\\(\\s*\\$nsg\\.SecurityRules|\\$rules\\s*=\\s*@\\("
         }
       ]
     },
