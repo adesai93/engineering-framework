@@ -68,6 +68,21 @@ retro, so it stays identical everywhere:
   `git -C <rulebook> config engfw.maintainer true`, then
   `git -C <rulebook> config --unset remote.origin.pushurl`.
 
+## Going back a version
+If a new version misbehaves on a client laptop, go back to the previous one
+until it's fixed (your notes aren't touched):
+```bash
+git -C ~/engineering-framework log --oneline -5
+git -C ~/engineering-framework reset --hard <previous commit>
+git -C ~/engineering-framework config engfw.hold <previous commit>
+node ~/engineering-framework/tools/workspace.mjs refresh
+```
+`engfw.hold` tells the tools the older version is on purpose. Log what went
+wrong (feedback: ...). The next `upgrade` brings you forward again and clears
+the hold. Hand edits to generated agent files are kept
+in each workspace's .engfw-backup/ before an update replaces them; VS Code
+workspace files and Cursor permissions are merged, not replaced.
+
 ## If something goes wrong
 - "Repository not found" / "Authentication failed": the client account is
   the active one. Set engfw.githubUser (above) and run `upgrade`, or use the

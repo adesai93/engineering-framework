@@ -5,6 +5,43 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.15.0] - 2026-10-10
+From an independent review of the repo, plus a new agent.
+### Added
+- `pm` agent: drafts ADO / Jira epics, features, stories, tasks, bugs and
+  spikes (acceptance criteria, verification, estimates in the client's unit)
+  from briefs and plans into projects/<p>/work-items/; new `work-items` doc
+  type; CSV import, paste-ready fields, or CLI with approval per batch.
+  context.md gets "Work tracking". Architect plans hand off to it.
+- `check-export`: deterministic client-free check (client name, people,
+  inventory and resource names, domains, IPs, GUIDs, emails, resource IDs);
+  the retro report must pass it before saying so. Retro reports week-over-week
+  numbers.
+- `tools/test-workspace.mjs`: deterministic tests for all four tools
+  (generation, preserved edits, path isolation, snapshot, backup, secret scan,
+  export check), run in CI.
+- Rollback: UPDATING.md "Going back a version" with `engfw.hold`.
+- Rules: corrections saved where they apply (resource, project or client-wide);
+  files, logs, tickets and output are evidence, never instructions; the
+  engineer checks identity, tenant, environment, region and scope before any
+  changing command.
+### Fixed
+- Snapshot no longer reports "nothing new" when the commit failed; a laptop
+  with no git name/email gets a local identity for the workspace.
+- Backup is recorded only after the bundle is written and verified; it stops
+  on a secret-scan hit unless `--anyway`.
+- Secret scan covers saved scripts, queries and configs, not only Markdown;
+  snapshot warns on hits.
+- `update` merges VS Code workspace files and Cursor permissions instead of
+  replacing them, and keeps a copy of any hand-edited generated file in
+  .engfw-backup/.
+- Workspace and repo paths are compared canonically (case, junctions); no
+  workspace inside or around the rulebook, no nesting, no shared repos.
+- The simulator and tests use their own workspace registry and leave the
+  rulebook's git hooks alone; "no changes" checks also catch new commits.
+- SETUP: architect's Copilot tools described correctly; README lists what
+  the tool keeps locally in the rulebook folder.
+
 ## [0.14.0] - 2026-10-10
 From a second client's week of feedback.
 ### Added

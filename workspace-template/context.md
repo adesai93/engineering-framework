@@ -38,6 +38,9 @@ Where this client differs from base: (extra rules)
 Change process: (ticket system, approval needed for prod? — or "none")
 Their incident / access / DR processes: (links only)
 Docs go to: (wiki? repo docs/? SharePoint?)
+Work tracking: (ADO Boards org/project + process Agile/Scrum/Basic, area and
+iteration paths; or Jira site + project key + issue types; required fields,
+estimation unit, Definition of Ready/Done, story format; CLI the agent may use)
 
 ## People
 (name — role — what to go to them for)

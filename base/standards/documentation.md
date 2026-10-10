@@ -14,6 +14,7 @@ deliverable records which version of this framework produced it.
 - config-reference: what it controls, settings+ranges, examples, failure impact
 - adr: context, options, decision, consequences, status
 - plan: goal, scope, changes, parameters, verification, rollback, risks and lenses
+- work-items: tracker, outline, items (description, acceptance criteria, verification, estimate), open questions
 - architecture-doc: goals, constraints(from client), design, data flow, security, scale, alternatives
 
 ## Templates

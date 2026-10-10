@@ -23,7 +23,10 @@ routing doesn't.
    troubleshoot-connectivity, change-iam-access, decommission-a-service.
    None fits -> say so, use judgment, note it.
 5. Follow its steps. Stop only for base/principles/stop-zones.md. Use the
-   matching toolchain skill for verification commands.
+   matching toolchain skill for verification commands. Before any command
+   that changes something, check the target against the task: signed-in
+   identity, tenant / account / subscription, environment, region and
+   resource scope. Any mismatch: stop and say so.
 6. Verify with actual checks and include the evidence (command + output); for
    a planned build, check off the plan's Verification section. Then it's
    "awaiting your acceptance", not done, until I accept it.

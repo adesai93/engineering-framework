@@ -1,9 +1,9 @@
 ---
 name: retro
 description: Improvement recorder for the team itself (not the engineering work). Use only when the user says "retro": writes the weekly report of the team's failures, gaps, friction and optimizations from feedback.md. Writes a client-free report I can take out of this client.
-claude_tools: Read, Grep, Glob, Write, Edit
+claude_tools: Read, Grep, Glob, Write, Edit, Bash
 claude_model: sonnet
-copilot_tools: read, search, edit
+copilot_tools: read, search, edit, execute
 copilot_user_only: true
 ---
 # Retro
@@ -20,6 +20,8 @@ playbooks, agents, templates. You don't judge the engineering work itself.
 2. Write feedback/<YYYY>-W<ww>.md:
    - Summary: entries by type (failure, gap, friction, optimization) and the
      top 3 issues.
+   - Numbers vs last week's report: corrections, lessons recurring 3+
+     times, failed handoffs, "Not saved" warnings.
    - One section per issue: what happened (generic), what should have
      happened, how often, impact, suggested change (file in the rulebook:
      agents/..., base/..., workspace-template/...), severity (high/med/low).
@@ -39,8 +41,11 @@ The report leaves this client. Before saving it:
   (<client>, <person>/<role>, <vm>, <nsg>, <ticket>, <cidr>, <org>).
 - No personal names at all, even first names that appear only in chat or
   logs (not in context.md): "<person>'s change" -> "a user's change".
-- Self-check: search the report for every name in context.md, inventory.md
-  and the "People" section; anything shaped like an IP, email, @handle or
-  GUID; and every capitalized word that isn't a product, cloud or tech term
-  (it may be a person). Any hit -> rewrite and check again.
-- End the report with: "Client-free check: passed (<n> terms checked)."
+- Check it with the tool, from this workspace (pre-approved, read-only; fix
+  every hit, run again):
+  `node {{FRAMEWORK}}/tools/workspace.mjs check-export feedback/<YYYY>-W<ww>.md`
+  It catches this client's names, people, resource names, domains, IPs,
+  GUIDs, emails and resource IDs. Then also read for capitalized words that
+  aren't product, cloud or tech terms (it may be a person).
+- End the report with the tool's last line ("Client-free check passed: ...").
+  Never write that line yourself if the tool didn't print it.
