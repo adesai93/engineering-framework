@@ -6,6 +6,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, readdirSync, mkdtempSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { createHash } from 'node:crypto';
 import { spawnSync, execFileSync } from 'node:child_process';
 import { ROOT } from './workspace.mjs';
 
@@ -165,6 +166,21 @@ test('update: template folders added since the workspace was made come back', ()
   rmSync(join(A, 'reference'), { recursive: true, force: true });
   const r = wsmjs(['update', A]);
   ok(r.code === 0 && existsSync(join(A, 'reference/README.md')), `reference/ not restored: ${r.out}`);
+});
+
+test('skills: reference files ship beside SKILL.md for every tool; one the rulebook dropped is removed (edited: kept in backup)', () => {
+  for (const base of ['.claude/skills', '.agents/skills']) ok(existsSync(join(A, base, 'playbooks/fix-a-service.md')), `${base}/playbooks reference file missing`);
+  ok(/\S\/base\/principles\/stop-zones\.md/.test(rd(join(A, '.claude/skills/playbooks/fix-a-service.md'))), 'reference file paths not made absolute');
+  const h = (s) => createHash('sha256').update(s).digest('hex').slice(0, 16);
+  const cfgPath = join(A, '.engineering-framework.json'); const cfg = json(cfgPath);
+  const stale = '.claude/skills/playbooks/retired.md'; const edited = '.claude/skills/playbooks/retired-edited.md';
+  writeFileSync(join(A, stale), 'old\n'); cfg.generated[stale] = h('old\n');
+  writeFileSync(join(A, edited), 'old, then MY EDIT\n'); cfg.generated[edited] = h('old\n');
+  writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
+  const r = wsmjs(['update', A]);
+  ok(r.code === 0, `update failed: ${r.out}`);
+  ok(!existsSync(join(A, stale)) && !existsSync(join(A, edited)), 'dropped reference files still there');
+  ok(copies(A, edited).some((t) => t.includes('MY EDIT')), 'edited dropped file not kept in .engfw-backup');
 });
 
 test('snapshot: saves, says when nothing changed, and fails loudly instead of claiming "nothing new"', () => {
