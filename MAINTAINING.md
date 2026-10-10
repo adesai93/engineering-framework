@@ -36,8 +36,8 @@ Every change to this repo, before the PR. Claude is the engineer; Codex is
 the reviewer (read-only, rubric in tools/review-rubric.md).
 1. Work on a branch, never main. Make the change, run `node tools/check.mjs`,
    commit.
-2. `git fetch`, then `node tools/review.mjs`: runs the check, sends the diff vs origin/main to
-   Codex and prints the findings (P0 must fix, P1 should fix, P2 optional).
+2. `git fetch`, then `node tools/review.mjs`: runs the check, sends the
+   diff vs origin/main to Codex and prints the findings (P0 must fix, P1 should fix, P2 optional).
 3. For each finding: fix it, or dispute it with a concrete reason. Don't
    agree just to end the loop, and don't dig in on a point Codex has right.
    Write the replies to the round-<n>.reply.md path it prints (one line per
