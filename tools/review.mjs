@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Build-review loop (maintainer machine only): Codex reviews the branch Claude built.
-//   node tools/review.mjs [--base main] [--max 3] [--model <m>] [--dry-run]   one review round
+//   node tools/review.mjs [--base origin/main] [--max 3] [--model <m>] [--dry-run]   one review round
 //   node tools/review.mjs log      the rounds so far as markdown (for the PR body)
 //   node tools/review.mjs reset    start over on this branch
 // Runs tools/check.mjs, then sends the diff vs the base branch (commits + uncommitted
@@ -18,12 +18,15 @@ import { ROOT } from './workspace.mjs';
 const args = process.argv.slice(2);
 const opt = (name, dflt) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : dflt; };
 const cmd = ['log', 'reset'].includes(args[0]) ? args[0] : 'review';
-const base = opt('--base', 'main');
 const max = Number(opt('--max', 3));
 const model = opt('--model');
 
 const env = { ...process.env }; delete env.OPENSSL_CONF;
 const git = (...a) => execFileSync('git', a, { cwd: ROOT, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+// origin/main, not main: a worktree's local main is often stale, and then the diff
+// would carry every PR merged since. Run `git fetch` first to review against the latest.
+const hasRef = (r) => { try { git('rev-parse', '--verify', '--quiet', r); return true; } catch { return false; } };
+const base = opt('--base', hasRef('origin/main') ? 'origin/main' : 'main');
 const die = (msg) => { console.error(`review: ${msg}`); process.exit(2); };
 if (!Number.isInteger(max) || max < 1) die('--max must be a whole number, 1 or more');
 
@@ -39,7 +42,7 @@ function codexCommand() {
 }
 
 const branch = git('rev-parse', '--abbrev-ref', 'HEAD');
-if (branch === base) die(`on ${base}: build on a branch, then review it against ${base}`);
+if (branch === base.replace(/^origin\//, '')) die(`on ${base}: build on a branch, then review it against ${base}`);
 // Readable slug + hash of the real name, so feature/x and feature_x never share rounds.
 const dir = join(ROOT, '.review', `${branch.replace(/[^\w.-]+/g, '_')}-${createHash('sha1').update(branch).digest('hex').slice(0, 8)}`);
 const roundFile = (n) => join(dir, `round-${n}.json`);
