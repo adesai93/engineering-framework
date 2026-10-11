@@ -5,6 +5,20 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.18.0] - 2026-10-11
+The hooks work in every tool that has them, not just Claude Code.
+### Added
+- Copilot in VS Code (`.github/hooks/engineering-framework.json`, VS Code
+  agent hooks, preview) and Codex (`.codex/hooks.json`, on apply_patch file
+  edits) run the same hook scripts as Claude Code. lib.mjs maps each tool's
+  names (create_file, replace_string_in_file, read_file, apply_patch, ...);
+  tools the hooks don't know pass through. The VS Code workspace turns off
+  chat.useClaudeHooks so the hooks don't run twice.
+- Test feeding VS Code and Codex tool calls to the hooks (22 total).
+### Changed
+- The session-start hook answers in the additionalContext form all three
+  tools read. SETUP: trust steps and the enforcement table per tool.
+
 ## [0.17.0] - 2026-10-10
 Architecture pass against Anthropic's agent, context-engineering and skill
 guidance and Microsoft's orchestration patterns: checkable rules move into

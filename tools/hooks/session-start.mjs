@@ -1,13 +1,12 @@
 #!/usr/bin/env node
-// SessionStart hook (Claude Code): runs at startup, resume, /clear and after
-// compaction. CLAUDE.md already imports context.md, rules.md and NOW.md; this
-// adds only what needs computing: memory files over their limit, project logs
-// over ~300 lines, and a workspace generated from an older rulebook.
-// Plain stdout becomes context for the agent. Silent when all is well.
+// SessionStart hook (Claude Code, Copilot in VS Code, Codex). The team rules
+// already have the agent read context.md, rules.md and NOW.md; this adds only
+// what needs computing: memory files over their limit, project logs over ~300
+// lines, and a workspace generated from an older rulebook. Silent when all is well.
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { MEMORY_LIMITS, frameworkVersion } from '../workspace.mjs';
-import { input, workspace } from './lib.mjs';
+import { input, workspace, emit } from './lib.mjs';
 
 const here = workspace(input());
 if (!here) process.exit(0);
@@ -30,4 +29,5 @@ const out = [];
 if (notes.length) out.push(`Workspace check: ${notes.join('; ')}. In your session summary, add one line offering \`tidy\`.`);
 const rulebook = frameworkVersion();
 if (cfg.version && cfg.version !== rulebook) out.push(`Workspace check: generated from rulebook v${cfg.version}, the rulebook is v${rulebook}. Tell the user once: say "update the team" to refresh it.`);
-if (out.length) process.stdout.write(out.join('\n') + '\n');
+// additionalContext: the one form all three tools add to the conversation.
+if (out.length) emit({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: out.join('\n') } });

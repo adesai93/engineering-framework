@@ -30,7 +30,7 @@ here. Changes reach main through a PR with the CI check passing.
    third person, what it does, then when to use it. Anything checkable
    (formats, limits, paths) goes in code: a script, check.mjs or a hook in
    tools/hooks/, with a test; a rule a hook enforces goes inside
-   `<!-- no-hooks -->` in team.md so only tools without hooks load it.
+   `<!-- no-hooks -->` in team.md so Claude Code (hooks always on) skips it.
 7. Keep agents/team.md lean: it's loaded into every chat and has a size
    budget in tools/check.mjs. Every proposal table includes at least one cut
    or merge; over 90% of the budget, a change must remove as much as it adds.

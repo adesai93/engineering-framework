@@ -40,6 +40,7 @@ test('new: every tool gets its files, one local commit, config records generated
   for (const f of ['AGENTS.md', 'CLAUDE.md', '.claude/settings.json', '.claude/agents/pm.md', '.claude/skills/handoff/SKILL.md',
     '.github/copilot-instructions.md', '.github/agents/pm.agent.md', '.cursor/agents/pm.md', '.cursor/cli.json', 'acme.code-workspace',
     '.codex/agents/pm.toml', '.agents/skills/env-map/SKILL.md', '.codex/rules/engineering-framework.rules',
+    '.github/hooks/engineering-framework.json', '.codex/hooks.json',
     'context.md', 'inventory.md', 'projects/_new/brief.md', 'reference/README.md']) ok(existsSync(join(A, f)), `missing ${f}`);
   ok(git(A, ['log', '--oneline']).split('\n').length === 1, 'expected exactly one commit');
   ok(git(A, ['config', 'user.email']) === 'workspace@localhost', 'local identity not set for a laptop without one');
@@ -183,7 +184,7 @@ test('skills: reference files ship beside SKILL.md for every tool; one the ruleb
   ok(copies(A, edited).some((t) => t.includes('MY EDIT')), 'edited dropped file not kept in .engfw-backup');
 });
 
-// Claude Code hooks: run each script the way Claude Code does (JSON on stdin).
+// Hooks: run each script the way the tools do (JSON on stdin).
 const hookEnv = { ...env }; delete hookEnv.CLAUDE_PROJECT_DIR;
 const runHook = (name, payload) => {
   const r = spawnSync(process.execPath, [join(ROOT, 'tools/hooks', `${name}.mjs`)], { input: JSON.stringify(payload), env: hookEnv, encoding: 'utf8' });
@@ -219,6 +220,30 @@ test('hooks: writes only inside the workspace and repos, never the rulebook; lon
   ok(!denied(runHook('guard-tool', { tool_name: 'Read', tool_input: { file_path: long, offset: 320, limit: 80 }, cwd: A })), 'partial read denied');
   ok(!denied(runHook('guard-tool', { tool_name: 'Read', tool_input: { file_path: join(A, 'context.md') }, cwd: A })), 'short read denied');
   rmSync(long);
+});
+
+test('hooks: Copilot (VS Code) and Codex get the same hooks, in their formats and tool names', () => {
+  const vs = json(join(A, '.github/hooks/engineering-framework.json')).hooks;
+  for (const ev of ['SessionStart', 'PreToolUse', 'PostToolUse']) ok(vs[ev]?.[0]?.command?.includes('/tools/hooks/'), `VS Code ${ev} hook missing`);
+  ok(json(join(A, 'acme.code-workspace')).settings['chat.useClaudeHooks'] === false, 'VS Code would run the Claude hooks too');
+  const cx = json(join(A, '.codex/hooks.json')).hooks;
+  ok(cx.PreToolUse[0].matcher === 'apply_patch' && cx.PostToolUse[0].matcher === 'apply_patch' && cx.SessionStart[0].hooks[0].command.includes('session-start'), 'Codex hooks wrong');
+  // VS Code tool names and parameters.
+  ok(denied(runHook('guard-tool', { tool_name: 'create_file', tool_input: { filePath: join(ROOT, 'agents/x.md'), content: 'x' }, cwd: A })), 'VS Code rulebook write allowed');
+  ok(!denied(runHook('guard-tool', { tool_name: 'replace_string_in_file', tool_input: { filePath: join(A, 'NOW.md'), oldString: 'a', newString: 'b' }, cwd: A })), 'VS Code workspace edit denied');
+  ok(denied(runHook('guard-tool', { tool_name: 'multi_replace_string_in_file', tool_input: { replacements: [{ filePath: join(A, 'NOW.md'), newString: 'b' }, { filePath: join(B, 'NOW.md'), newString: 'b' }] }, cwd: A })), 'VS Code multi-file edit outside allowed');
+  ok(!denied(runHook('guard-tool', { tool_name: 'run_in_terminal', tool_input: { command: 'ls' }, cwd: A })), 'unrelated VS Code tool denied');
+  const long = join(A, 'research/long.md'); mkdirSync(join(A, 'research'), { recursive: true });
+  writeFileSync(long, Array.from({ length: 400 }, (_, i) => `line ${i}`).join('\n'));
+  ok(!denied(runHook('guard-tool', { tool_name: 'read_file', tool_input: { filePath: long, startLine: 1, endLine: 80 }, cwd: A })), 'VS Code ranged read denied');
+  rmSync(long);
+  // Codex (and VS Code) apply_patch: every file in the patch is checked; added lines are what was written.
+  const p = (files) => ['*** Begin Patch', ...files.flatMap((f) => [`*** Add File: ${f}`, '+hello']), '*** End Patch'].join('\n');
+  ok(!denied(runHook('guard-tool', { tool_name: 'apply_patch', tool_input: { command: p(['projects/x/a.md']) }, cwd: A })), 'Codex workspace patch denied');
+  ok(denied(runHook('guard-tool', { tool_name: 'apply_patch', tool_input: { command: p(['projects/x/a.md', join(ROOT, 'agents/team.md')]) }, cwd: A })), 'Codex rulebook patch allowed');
+  const inv = join(A, 'inventory.md');
+  const bad = runHook('check-write', { tool_name: 'apply_patch', tool_input: { command: `*** Begin Patch\n*** Update File: ${inv}\n@@\n+- prd vnet vnet-a 10.0.0.0/16\n*** End Patch` }, cwd: A });
+  ok(/"decision":"block"/.test(bad.out) && /9 fields/.test(bad.out), `Codex bad inventory line passed: ${bad.out}`);
 });
 
 test('hooks: a secret or a malformed inventory line just written is sent back to the agent', () => {

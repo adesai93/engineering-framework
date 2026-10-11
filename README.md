@@ -44,7 +44,7 @@ Requires Node 18+ and git.
 - `tools/workspace.mjs` — creates workspaces and generates each tool's agent
   files (Claude Code subagents, Copilot custom agents, Cursor subagents,
   instructions).
-- `tools/hooks/` — Claude Code hooks that enforce some team rules as code.
+- `tools/hooks/` — hooks (Claude Code, Copilot in VS Code, Codex) that enforce some team rules as code.
 - `tools/check.mjs` — consistency check; CI runs it on pushes to main and PRs.
 
 ## Changing the team
