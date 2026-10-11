@@ -550,7 +550,7 @@
     {
       "id": "playbook-via-skill",
       "prompts": [
-        "fix: since this morning the orders API in prd returns 502s behind the application gateway. Give me your plan before changing anything."
+        "fix: since last week's deploy, about 2% of requests to the orders API in dev return 502s behind the application gateway. Not urgent. Give me your plan before changing anything."
       ],
       "checks": [
         {
