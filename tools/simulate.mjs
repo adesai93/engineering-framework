@@ -54,10 +54,12 @@ function claude(dir, prompt, cont, mode, allow) {
     let s = ''; p.stdout.on('data', (d) => { s += d; });
     p.on('close', () => {
       const msgs = s.split('\n').map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
-      const text = msgs.filter((m) => m.type === 'assistant').flatMap((m) => m.message?.content || [])
-        .filter((c) => c.type === 'text').map((c) => c.text).join('\n\n');
+      const content = msgs.filter((m) => m.type === 'assistant').flatMap((m) => m.message?.content || []);
+      const text = content.filter((c) => c.type === 'text').map((c) => c.text).join('\n\n');
+      // Every tool call as "Name {input}", for checks on what the agent did, not what it said.
+      const tools = content.filter((c) => c.type === 'tool_use').map((c) => `${c.name} ${JSON.stringify(c.input)}`);
       const r = msgs.find((m) => m.type === 'result') || {};
-      done({ result: text || r.result || s, total_cost_usd: r.total_cost_usd || 0 });
+      done({ result: text || r.result || s, total_cost_usd: r.total_cost_usd || 0, tools });
     });
   });
 }
@@ -71,8 +73,14 @@ const mdText = (dir) => {
   walk(dir); return parts.join('\n');
 };
 
-function check(c, dir, reply, before) {
+function check(c, dir, reply, before, tools = []) {
   switch (c.type) {
+    case 'tool-matches': { const ok = tools.some((t) => new RegExp(c.regex, 'i').test(t)); return [ok, ok ? '' : `no tool call matching /${c.regex}/`]; }
+    case 'any-file-matches': {
+      // The fact may rightly land in one of several files (e.g. a correction: rules.md or the resource's inventory line).
+      const ok = c.files.some((f) => existsSync(join(dir, f)) && new RegExp(c.regex, 'i').test(readFileSync(join(dir, f), 'utf8')));
+      return [ok, ok ? '' : `none of ${c.files.join(', ')} has /${c.regex}/`];
+    }
     case 'no-workspace-changes': {
       // Uncommitted changes AND new commits (an agent could change files, then snapshot them).
       const st = sh('git', ['status', '--porcelain'], dir).split('\n').filter((l) => l && !l.includes('.claude/'));
@@ -111,6 +119,8 @@ function check(c, dir, reply, before) {
       // A report the agent wrote must pass the deterministic client-free check.
       const found = existsSync(join(dir, c.dir)) ? readdirSync(join(dir, c.dir)).filter((f) => new RegExp(c.regex).test(f)) : [];
       if (!found.length) return [false, `no file in ${c.dir} matching /${c.regex}/`];
+      // The report ends with the tool's own verdict line (proof the agent ran it).
+      if (!/No configured identifiers detected/.test(readFileSync(join(dir, c.dir, found[0]), 'utf8'))) return [false, `${found[0]} lacks the check-export verdict line`];
       try { sh(process.execPath, [join(ROOT, 'tools/workspace.mjs'), 'check-export', `${c.dir}/${found[0]}`], dir); return [true, '']; } catch (e) { return [false, `check-export failed on ${found[0]}: ${String(e.stdout).trim().split('\n').slice(0, 3).join(' | ')}`]; }
     }
     case 'git-log-matches': {
@@ -130,13 +140,14 @@ async function scenario(s) {
   // Scenario-specific setup: extra or replaced files (e.g. a stale git lock) after the fixture commit.
   for (const [rel, content] of Object.entries(s.files || {})) { const p = join(dir, rel); mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, content); }
   const before = { projects: readdirSync(join(dir, 'projects')), head: sh('git', ['rev-parse', 'HEAD'], dir).trim() };
-  let reply = ''; let cost = 0;
+  let reply = ''; let cost = 0; const tools = [];
   for (const [i, p] of s.prompts.entries()) {
     const r = await claude(dir, p.replaceAll("{{FAKE_SAS}}", FAKE_SAS), i > 0 && s.continue, s.permissionMode, s.allow);
-    reply = r.result || ''; cost += r.total_cost_usd || 0;
+    reply = r.result || ''; cost += r.total_cost_usd || 0; tools.push(...r.tools);
   }
-  const results = s.checks.map((c) => check(c, dir, reply, before));
+  const results = s.checks.map((c) => check(c, dir, reply, before, tools));
   writeFileSync(join(out, `${s.id}.reply.md`), reply);
+  writeFileSync(join(out, `${s.id}.tools.txt`), tools.join('\n'));
   const detail = s.checks.map((c, i) => `      ${results[i][0] ? 'ok  ' : 'FAIL'} ${c.type}${c.regex ? ` /${c.regex}/` : ''}${c.file ? ` ${c.file}` : ''}${results[i][1] ? ` -> ${results[i][1]}` : ''}`).join('\n');
   return { id: s.id, pass: results.every(([ok]) => ok), why: results.filter(([ok]) => !ok).map(([, w]) => w).join('; '), cost, detail };
 }

@@ -16,8 +16,8 @@ Before sending, the reply must pass all of these:
    steps.
 2. Complete content, every time: the whole script or query, never a local
    path, a "same as before", or a replacement tail. Remote machines can't see
-   this workspace. Also save it to projects/<p>/scripts/<name> (overwrite;
-   the log notes the version).
+   this workspace. Also save it to projects/<p>/scripts/<name>, or
+   log/scripts/<name> with no project (overwrite; the log notes the version).
 3. PowerShell scripts: never hand-write the paste block. Save the script
    (step 2), then print the block with this read-only packer and paste its
    output verbatim:

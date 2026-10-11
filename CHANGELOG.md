@@ -18,6 +18,12 @@ The hooks work in every tool that has them, not just Claude Code.
 ### Changed
 - The session-start hook answers in the additionalContext form all three
   tools read. SETUP: trust steps and the enforcement table per tool.
+- handoff: with no project, scripts are saved to log/scripts/.
+- simulate.mjs records every tool call (`<id>.tools.txt`); new checks
+  `tool-matches` (what the agent did, not what it said) and
+  `any-file-matches`; export-clean also needs the tool's verdict line in the
+  report. Fixed four scenarios that failed on correct behaviour
+  (correction-saved, retro-client-free, playbook-via-skill, handoff-packed).
 
 ## [0.17.0] - 2026-10-10
 Architecture pass against Anthropic's agent, context-engineering and skill

@@ -40,9 +40,12 @@
       "continue": true,
       "checks": [
         {
-          "type": "file-matches",
-          "file": "rules.md",
-          "regex": "RHEL"
+          "type": "any-file-matches",
+          "files": [
+            "rules.md",
+            "inventory.md"
+          ],
+          "regex": "RHEL[^\n]*(apt|ufw)|(apt|ufw)[^\n]*RHEL"
         }
       ]
     },
@@ -471,10 +474,6 @@
           "regex": "W\\d+\\.md$"
         },
         {
-          "type": "reply-matches",
-          "regex": "(No configured identifiers detected|export check passed|check-export passed|client-free)"
-        },
-        {
           "type": "file-matches",
           "file": "feedback.md",
           "regex": "-> ?20\\d\\d-W\\d+"
@@ -555,8 +554,8 @@
       ],
       "checks": [
         {
-          "type": "reply-matches",
-          "regex": "(fix-a-service|troubleshoot-connectivity|playbook)"
+          "type": "tool-matches",
+          "regex": "Skill.*playbooks|playbooks[\\\\/]+[a-z-]+\\.md"
         },
         {
           "type": "reply-matches",
@@ -576,12 +575,16 @@
         },
         {
           "type": "reply-matches",
-          "regex": "UTF8Encoding]::new($true)"
+          "regex": "UTF8Encoding\\]::new\\(\\$true\\)"
+        },
+        {
+          "type": "tool-matches",
+          "regex": "handoff[\\\\/]+pack\\.mjs"
         },
         {
           "type": "glob-exists",
-          "dir": "projects",
-          "regex": "scripts/.+.ps1$"
+          "dir": ".",
+          "regex": "^(projects/[^/]+|log)/scripts/.+\\.ps1$"
         }
       ]
     },
