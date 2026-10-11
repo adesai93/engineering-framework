@@ -38,6 +38,32 @@ here. Changes reach main through a PR with the CI check passing.
    if agent behaviour changes, PATCH for wording).
 8. Move processed reports out of inbox/ (delete them; they are not kept).
 
+## Build-review loop (Claude builds, Codex reviews)
+For changes to agents/, skills/, base/, workspace-template/ or tools/, before
+the PR (docs-only changes may skip it). Claude is the engineer; Codex is the
+reviewer (read-only, rubric in tools/review-rubric.md). A different model
+catches what the author's own model would repeat.
+1. Work on a branch, never main. Make the change, run `node tools/check.mjs`
+   (and `node tools/test-workspace.mjs` for tooling changes), commit.
+2. `git fetch`, then `node tools/review.mjs`: runs the check, sends the
+   diff vs origin/main to Codex and prints the findings (P0 must fix, P1
+   should fix, P2 optional).
+3. For each finding: fix it, or dispute it with a concrete reason. Don't
+   agree just to end the loop, and don't dig in on a point Codex has right.
+   Write the replies to the round-<n>.reply.md path it prints (one line per
+   finding: fixed + how, or disputed + why), commit the fixes, run again.
+4. Stop when it passes (exit 0), or at the round cap (exit 3, default 3
+   rounds): then show me the open disagreements, both sides, and let me
+   decide. Never raise the cap on your own.
+5. Behaviour changes: only now run `node tools/simulate.mjs` (step 6 of the
+   inbox process), once, on the version Codex passed: simulations cost money,
+   reviews of a draft don't need them.
+6. Open the PR with `node tools/review.mjs log` in the body, so the review
+   history travels with the change. `node tools/review.mjs reset` starts a
+   fresh loop after a big rework.
+Codex needs to be installed and signed in (`codex login`). In Orca, Agents
+must be in Manual mode (SETUP.md); the loop itself runs from one Claude tab.
+
 ## Prune (quarterly, or when team.md hits 90%)
 A rule earns its place by changing behaviour. Models improve and rules
 overlap, so some stop mattering.

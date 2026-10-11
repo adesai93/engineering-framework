@@ -8,3 +8,5 @@ inbox/
 .workspaces.local.json
 # Claude Code saves permissions you approve while working IN the rulebook here.
 .claude/settings.local.json
+# Codex review rounds (tools/review.mjs): local working state
+.review/

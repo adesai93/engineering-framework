@@ -76,6 +76,18 @@ function checkAgents(ctx) {
     if (s.description.length < 20 || s.description.length > 1000) out.push(fail(s.file, 1, 'description must say when to use it (20-1000 chars)'));
     if (names.has(s.name)) out.push(fail(s.file, 1, `skill "${s.name}" clashes with an agent name`));
   }
+  // Source frontmatter must be valid YAML as written: GitHub (and any YAML reader)
+  // rejects a plain value with ": " or " #" in it, or one starting with a YAML symbol.
+  // Generated files quote their values; this is about the files in this repo.
+  for (const file of [...agents.map((a) => a.file), ...skills.map((s) => s.file)]) {
+    const src = lines(file);
+    if (src[0] !== '---') continue;
+    for (let i = 1; i < src.length && src[i] !== '---'; i++) {
+      const v = src[i].match(/^[\w-]+:\s+(.*)$/)?.[1]?.trim();
+      if (!v || /^(["']).*\1$/.test(v)) continue;
+      if (/: | #|^["'&*!|>%@`{[]/.test(v)) out.push(fail(file, i + 1, 'frontmatter value is not valid plain YAML (": ", " #" or a leading symbol): reword it or quote the whole value'));
+    }
+  }
   try { render({ framework: '/fw', tools: ['claude', 'copilot', 'cursor', 'codex'], client: 'check' }); } catch (e) {
     out.push(fail('tools/workspace.mjs', 1, `render failed: ${e.message}`));
   }

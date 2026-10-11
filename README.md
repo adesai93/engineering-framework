@@ -46,10 +46,13 @@ Requires Node 18+ and git.
   instructions).
 - `tools/hooks/` — hooks (Claude Code, Copilot in VS Code, Codex) that enforce some team rules as code.
 - `tools/check.mjs` — consistency check; CI runs it on pushes to main and PRs.
+- `tools/review.mjs` — maintainer build-review loop: Codex reviews the branch
+  Claude built, against `tools/review-rubric.md` (see MAINTAINING.md).
 
 ## Changing the team
 Edit `agents/` or `base/` HERE (never on a client laptop), run
-`node tools/check.mjs`, record it in CHANGELOG.md, merge to main.
+`node tools/check.mjs` and the Codex review loop (`node tools/review.mjs`),
+record it in CHANGELOG.md, merge to main.
 
 On each client laptop: `git pull` in the rulebook (or tell the agent "update
 the team"). A git hook refreshes every workspace on that machine (generated

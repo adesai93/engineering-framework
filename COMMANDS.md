@@ -10,6 +10,7 @@
 | Get the latest rulebook (weekly) | `git -C ~/engineering-framework pull`, or tell the agent "update the team" (UPDATING.md) |
 | Update one workspace | `node tools/workspace.mjs update ~/work/client-a` |
 | Check the rulebook | `node tools/check.mjs` |
+| Codex review of a rulebook branch (maintainer) | `node tools/review.mjs` (`log` for the PR body, `reset` to start over) |
 | Back up a workspace (client-approved folder) | `node tools/workspace.mjs backup ~/work/client-a --to <folder>` (stops on a secret-scan hit; `--anyway` for false alarms) |
 | Is a file client-free? (run from the workspace) | `node <rulebook>/tools/workspace.mjs check-export feedback/2026-W41.md` |
 | Health check | `node tools/workspace.mjs doctor ~/work/client-a` |

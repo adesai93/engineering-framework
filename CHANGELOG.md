@@ -5,6 +5,23 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.18.1] - 2026-10-11
+Maintainer tooling and a frontmatter fix; nothing changes how agents behave.
+### Added
+- Build-review loop for rulebook changes: Claude builds, Codex reviews.
+  `node tools/review.mjs` runs the check, sends the branch diff to
+  `codex exec` (read-only sandbox, rubric in tools/review-rubric.md) and gets
+  back JSON findings (P0/P1/P2). The engineer fixes or disputes each one in a
+  reply file; Codex sees the replies next round. Stops on pass or after 3
+  rounds, then the maintainer decides. `log` prints the history for the PR
+  body. Process in MAINTAINING.md: for agents/, skills/, base/,
+  workspace-template/ and tools/ changes, before the one simulation run.
+- check.mjs: agent and skill frontmatter values must be valid plain YAML
+  (no ": " or " #" inside, no leading quote or YAML symbol).
+### Fixed
+- agents/retro.md: its description had `"retro": writes`, invalid YAML, so
+  GitHub showed an error on the file (generated files were quoted and fine).
+
 ## [0.18.0] - 2026-10-11
 The hooks work in every tool that has them, not just Claude Code.
 ### Added
