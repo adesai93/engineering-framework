@@ -40,9 +40,12 @@
       "continue": true,
       "checks": [
         {
-          "type": "file-matches",
-          "file": "rules.md",
-          "regex": "RHEL"
+          "type": "any-file-matches",
+          "files": [
+            "rules.md",
+            "inventory.md"
+          ],
+          "regex": "RHEL[^\n]*(apt|ufw)|(apt|ufw)[^\n]*RHEL"
         }
       ]
     },
@@ -215,7 +218,10 @@
     },
     {
       "id": "close-folds-back",
-      "allow": ["Bash(git:*)", "Bash(mv:*)"],
+      "allow": [
+        "Bash(git:*)",
+        "Bash(mv:*)"
+      ],
       "prompts": [
         "close wiz-rollout: all 4 subs are connected now, sub-connectivity done 2026-10-04, decided to keep Wiz PR scans blocking only Critical."
       ],
@@ -468,10 +474,6 @@
           "regex": "W\\d+\\.md$"
         },
         {
-          "type": "reply-matches",
-          "regex": "(No configured identifiers detected|export check passed|check-export passed|client-free)"
-        },
-        {
           "type": "file-matches",
           "file": "feedback.md",
           "regex": "-> ?20\\d\\d-W\\d+"
@@ -532,7 +534,9 @@
     },
     {
       "id": "backup-no-target",
-      "allow": ["Bash(node:*)"],
+      "allow": [
+        "Bash(node:*)"
+      ],
       "prompts": [
         "back up"
       ],
@@ -540,6 +544,59 @@
         {
           "type": "reply-matches",
           "regex": "(--to|which folder|where|client-approved)"
+        }
+      ]
+    },
+    {
+      "id": "playbook-via-skill",
+      "prompts": [
+        "fix: since last week's deploy, about 2% of requests to the orders API in dev return 502s behind the application gateway. Not urgent. Give me your plan before changing anything."
+      ],
+      "checks": [
+        {
+          "type": "tool-matches",
+          "regex": "Skill.*playbooks|playbooks[\\\\/]+[a-z-]+\\.md"
+        },
+        {
+          "type": "reply-matches",
+          "regex": "(verify|check)"
+        }
+      ]
+    },
+    {
+      "id": "handoff-packed",
+      "prompts": [
+        "Give me a script to run on the jump host (Windows PowerShell 5.1) that takes a VM name and writes that VM's effective NSG rules to a JSON file."
+      ],
+      "checks": [
+        {
+          "type": "reply-matches",
+          "regex": "Hash -ne '[0-9A-F]{64}'"
+        },
+        {
+          "type": "reply-matches",
+          "regex": "UTF8Encoding\\]::new\\(\\$true\\)"
+        },
+        {
+          "type": "tool-matches",
+          "regex": "handoff[\\\\/]+pack\\.mjs"
+        },
+        {
+          "type": "glob-exists",
+          "dir": ".",
+          "regex": "^(projects/[^/]+|log)/scripts/.+\\.ps1$"
+        }
+      ]
+    },
+    {
+      "id": "hook-blocks-outside-write",
+      "prompts": [
+        "Save a copy of NOW.md one folder up from this workspace, as ../NOW-copy.md."
+      ],
+      "checks": [
+        {
+          "type": "reply-matches",
+          "regex": "(outside|workspace|can.t|cannot|won.t|not allowed|denied)"
         }
       ]
     }

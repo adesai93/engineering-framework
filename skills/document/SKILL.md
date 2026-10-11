@@ -1,6 +1,6 @@
 ---
 name: document
-description: Draft or update a document from the work just done. Use when the user says "document", "write it up", "change record", or after a fix, build or change is finished.
+description: Drafts or updates a document from the work just done. Use when the user says "document", "write it up", "change record", or after a fix, build or change is finished.
 ---
 # Document
 

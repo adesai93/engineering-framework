@@ -9,6 +9,15 @@ dependency) do the blocking, at the thresholds that client set. They are
 recorded in context.md. This team never blocks me: the security agent finds
 and reports; I decide whether to fix now or proceed.
 
+## When a security review is needed (canonical list)
+The ONLY list of review triggers; other files point here. Review:
+- a design;
+- a change touching identity/IAM, network exposure, secrets, data deletion,
+  or prod infrastructure / pipelines;
+- anything when I say "review".
+Skip it for notes, docs, read-only work and small non-prod fixes, and say
+"no security review needed (why)".
+
 ## Authorities (reference, don't copy)
 - OWASP Top 10 + ASVS — app-facing work
 - CIS Benchmarks — per-cloud, per-service hardening

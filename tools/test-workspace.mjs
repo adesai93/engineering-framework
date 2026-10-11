@@ -5,7 +5,8 @@
 // backup, the secret scan and the client-free export check. Runs in CI.
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, readdirSync, mkdtempSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { tmpdir, homedir } from 'node:os';
+import { createHash } from 'node:crypto';
 import { spawnSync, execFileSync } from 'node:child_process';
 import { ROOT } from './workspace.mjs';
 
@@ -39,6 +40,7 @@ test('new: every tool gets its files, one local commit, config records generated
   for (const f of ['AGENTS.md', 'CLAUDE.md', '.claude/settings.json', '.claude/agents/pm.md', '.claude/skills/handoff/SKILL.md',
     '.github/copilot-instructions.md', '.github/agents/pm.agent.md', '.cursor/agents/pm.md', '.cursor/cli.json', 'acme.code-workspace',
     '.codex/agents/pm.toml', '.agents/skills/env-map/SKILL.md', '.codex/rules/engineering-framework.rules',
+    '.github/hooks/engineering-framework.json', '.codex/hooks.json',
     'context.md', 'inventory.md', 'projects/_new/brief.md', 'reference/README.md']) ok(existsSync(join(A, f)), `missing ${f}`);
   ok(git(A, ['log', '--oneline']).split('\n').length === 1, 'expected exactly one commit');
   ok(git(A, ['config', 'user.email']) === 'workspace@localhost', 'local identity not set for a laptop without one');
@@ -47,11 +49,11 @@ test('new: every tool gets its files, one local commit, config records generated
   ok(rd(join(A, '.github/agents/architect.agent.md')).includes('agent: pm'), 'architect -> pm handoff missing');
   // Pre-approved commands: snapshot and the read-only export check only, in every tool.
   const allow = json(join(A, '.claude/settings.json')).permissions.allow;
-  ok(allow.length === 2 && allow.every((a) => / (snapshot|check-export):\*\)$/.test(a)), `Claude allow list: ${allow}`);
+  ok(allow.length === 3 && allow.every((a) => /( (snapshot|check-export)|handoff\/pack\.mjs):\*\)$/.test(a)), `Claude allow list: ${allow}`);
   const auto = Object.keys(json(join(A, 'acme.code-workspace')).settings['chat.tools.terminal.autoApprove']);
   ok(auto.length === 2 && auto.some((k) => k.includes('snapshot')) && auto.some((k) => k.includes('check-export')), `Copilot auto-approve: ${auto}`);
   const rules = rd(join(A, '.codex/rules/engineering-framework.rules'));
-  ok((rules.match(/prefix_rule/g) || []).length === 2 && rules.includes('"check-export"'), 'Codex rules');
+  ok((rules.match(/prefix_rule/g) || []).length === 3 && rules.includes('"check-export"') && rules.includes('handoff/pack.mjs'), 'Codex rules');
   ok(json(join(A, '.claude/settings.json')).permissions.deny.some((d) => d.startsWith('Edit(')), 'Claude rulebook deny missing');
   ok(rd(join(A, '.claude/agents/retro.md')).includes('tools: Read, Grep, Glob, Write, Edit, Bash'), 'retro cannot run the export check');
 });
@@ -165,6 +167,107 @@ test('update: template folders added since the workspace was made come back', ()
   rmSync(join(A, 'reference'), { recursive: true, force: true });
   const r = wsmjs(['update', A]);
   ok(r.code === 0 && existsSync(join(A, 'reference/README.md')), `reference/ not restored: ${r.out}`);
+});
+
+test('skills: reference files ship beside SKILL.md for every tool; one the rulebook dropped is removed (edited: kept in backup)', () => {
+  for (const base of ['.claude/skills', '.agents/skills']) ok(existsSync(join(A, base, 'playbooks/fix-a-service.md')), `${base}/playbooks reference file missing`);
+  ok(/\S\/base\/principles\/stop-zones\.md/.test(rd(join(A, '.claude/skills/playbooks/fix-a-service.md'))), 'reference file paths not made absolute');
+  const h = (s) => createHash('sha256').update(s).digest('hex').slice(0, 16);
+  const cfgPath = join(A, '.engineering-framework.json'); const cfg = json(cfgPath);
+  const stale = '.claude/skills/playbooks/retired.md'; const edited = '.claude/skills/playbooks/retired-edited.md';
+  writeFileSync(join(A, stale), 'old\n'); cfg.generated[stale] = h('old\n');
+  writeFileSync(join(A, edited), 'old, then MY EDIT\n'); cfg.generated[edited] = h('old\n');
+  writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
+  const r = wsmjs(['update', A]);
+  ok(r.code === 0, `update failed: ${r.out}`);
+  ok(!existsSync(join(A, stale)) && !existsSync(join(A, edited)), 'dropped reference files still there');
+  ok(copies(A, edited).some((t) => t.includes('MY EDIT')), 'edited dropped file not kept in .engfw-backup');
+});
+
+// Hooks: run each script the way the tools do (JSON on stdin).
+const hookEnv = { ...env }; delete hookEnv.CLAUDE_PROJECT_DIR;
+const runHook = (name, payload) => {
+  const r = spawnSync(process.execPath, [join(ROOT, 'tools/hooks', `${name}.mjs`)], { input: JSON.stringify(payload), env: hookEnv, encoding: 'utf8' });
+  return { code: r.status, out: r.stdout.trim(), err: r.stderr.trim() };
+};
+const denied = (r) => /"permissionDecision":"deny"/.test(r.out);
+
+test('hooks: wired into Claude settings (user hooks kept); CLAUDE.md drops only the hook-enforced rules', () => {
+  const sp = join(A, '.claude/settings.json'); const s = json(sp);
+  for (const ev of ['SessionStart', 'PreToolUse', 'PostToolUse']) ok((s.hooks?.[ev] || []).some((g) => g.hooks.some((h) => h.command.includes('/tools/hooks/'))), `${ev} hook missing`);
+  s.hooks.PostToolUse.push({ matcher: 'Bash', hooks: [{ type: 'command', command: 'echo mine' }] });
+  writeFileSync(sp, JSON.stringify(s, null, 2));
+  ok(wsmjs(['update', A]).code === 0, 'update failed');
+  const after = json(sp).hooks;
+  ok(after.PostToolUse.some((g) => g.hooks.some((h) => h.command === 'echo mine')), 'user hook lost on update');
+  ok(after.PreToolUse.filter((g) => g.hooks.some((h) => h.command.includes('/tools/hooks/'))).length === 1, 'our hook duplicated on update');
+  const claude = rd(join(A, 'CLAUDE.md')); const agents = rd(join(A, 'AGENTS.md'));
+  ok(!claude.includes('Never read a file over') && agents.includes('Never read a file over'), 'no-hooks block not split per tool');
+  ok(!/no-hooks/.test(claude + agents), 'marker left in output');
+  ok(/^@NOW\.md$/m.test(claude) && claude.includes('## Isolation'), 'CLAUDE.md missing team rules or NOW.md import');
+});
+
+test('hooks: writes only inside the workspace and repos, never the rulebook; long files read in parts', () => {
+  const w = (p) => runHook('guard-tool', { tool_name: 'Write', tool_input: { file_path: p }, cwd: A });
+  ok(!denied(w(join(A, 'projects/x/notes.md'))), 'write inside the workspace was denied');
+  ok(!denied(w('projects/x/relative.md')), 'relative write inside the workspace was denied');
+  ok(denied(w(join(ROOT, 'agents/team.md'))), 'rulebook write allowed');
+  ok(denied(w(join(B, 'context.md'))), "another client's workspace write allowed");
+  ok(!denied(w(join(homedir(), '.claude', 'plans', 'p.md'))), 'Claude Code plan file denied');
+  const long = join(A, 'research/long.md'); mkdirSync(join(A, 'research'), { recursive: true });
+  writeFileSync(long, Array.from({ length: 400 }, (_, i) => `line ${i}`).join('\n'));
+  ok(denied(runHook('guard-tool', { tool_name: 'Read', tool_input: { file_path: long }, cwd: A })), 'whole read of a 400-line file allowed');
+  ok(!denied(runHook('guard-tool', { tool_name: 'Read', tool_input: { file_path: long, offset: 320, limit: 80 }, cwd: A })), 'partial read denied');
+  ok(!denied(runHook('guard-tool', { tool_name: 'Read', tool_input: { file_path: join(A, 'context.md') }, cwd: A })), 'short read denied');
+  rmSync(long);
+});
+
+test('hooks: Copilot (VS Code) and Codex get the same hooks, in their formats and tool names', () => {
+  const vs = json(join(A, '.github/hooks/engineering-framework.json')).hooks;
+  for (const ev of ['SessionStart', 'PreToolUse', 'PostToolUse']) ok(vs[ev]?.[0]?.command?.includes('/tools/hooks/'), `VS Code ${ev} hook missing`);
+  ok(json(join(A, 'acme.code-workspace')).settings['chat.useClaudeHooks'] === false, 'VS Code would run the Claude hooks too');
+  const cx = json(join(A, '.codex/hooks.json')).hooks;
+  ok(cx.PreToolUse[0].matcher === 'apply_patch' && cx.PostToolUse[0].matcher === 'apply_patch' && cx.SessionStart[0].hooks[0].command.includes('session-start'), 'Codex hooks wrong');
+  // VS Code tool names and parameters.
+  ok(denied(runHook('guard-tool', { tool_name: 'create_file', tool_input: { filePath: join(ROOT, 'agents/x.md'), content: 'x' }, cwd: A })), 'VS Code rulebook write allowed');
+  ok(!denied(runHook('guard-tool', { tool_name: 'replace_string_in_file', tool_input: { filePath: join(A, 'NOW.md'), oldString: 'a', newString: 'b' }, cwd: A })), 'VS Code workspace edit denied');
+  ok(denied(runHook('guard-tool', { tool_name: 'multi_replace_string_in_file', tool_input: { replacements: [{ filePath: join(A, 'NOW.md'), newString: 'b' }, { filePath: join(B, 'NOW.md'), newString: 'b' }] }, cwd: A })), 'VS Code multi-file edit outside allowed');
+  ok(!denied(runHook('guard-tool', { tool_name: 'run_in_terminal', tool_input: { command: 'ls' }, cwd: A })), 'unrelated VS Code tool denied');
+  const long = join(A, 'research/long.md'); mkdirSync(join(A, 'research'), { recursive: true });
+  writeFileSync(long, Array.from({ length: 400 }, (_, i) => `line ${i}`).join('\n'));
+  ok(!denied(runHook('guard-tool', { tool_name: 'read_file', tool_input: { filePath: long, startLine: 1, endLine: 80 }, cwd: A })), 'VS Code ranged read denied');
+  rmSync(long);
+  // Codex (and VS Code) apply_patch: every file in the patch is checked; added lines are what was written.
+  const p = (files) => ['*** Begin Patch', ...files.flatMap((f) => [`*** Add File: ${f}`, '+hello']), '*** End Patch'].join('\n');
+  ok(!denied(runHook('guard-tool', { tool_name: 'apply_patch', tool_input: { command: p(['projects/x/a.md']) }, cwd: A })), 'Codex workspace patch denied');
+  ok(denied(runHook('guard-tool', { tool_name: 'apply_patch', tool_input: { command: p(['projects/x/a.md', join(ROOT, 'agents/team.md')]) }, cwd: A })), 'Codex rulebook patch allowed');
+  const inv = join(A, 'inventory.md');
+  const bad = runHook('check-write', { tool_name: 'apply_patch', tool_input: { command: `*** Begin Patch\n*** Update File: ${inv}\n@@\n+- prd vnet vnet-a 10.0.0.0/16\n*** End Patch` }, cwd: A });
+  ok(/"decision":"block"/.test(bad.out) && /9 fields/.test(bad.out), `Codex bad inventory line passed: ${bad.out}`);
+});
+
+test('hooks: a secret or a malformed inventory line just written is sent back to the agent', () => {
+  const f = join(A, 'projects/x/notes.md'); mkdirSync(join(A, 'projects/x'), { recursive: true });
+  writeFileSync(f, `key: ${'AKIA'}ABCDEFGHIJKLMNOP\n`);
+  const r = runHook('check-write', { tool_name: 'Write', tool_input: { file_path: f, content: '' }, cwd: A });
+  ok(/"decision":"block"/.test(r.out) && /AWS access key id/.test(r.out) && !r.out.includes('ABCDEFGHIJKLMNOP'), `secret not flagged (or echoed): ${r.out}`);
+  rmSync(f);
+  const inv = join(A, 'inventory.md');
+  const good = '- prd · vnet · vnet-a · sub/rg · 10.0.0.0/16 · net team · iac/net · az graph · 2026-10-10';
+  ok(runHook('check-write', { tool_name: 'Edit', tool_input: { file_path: inv, new_string: good }, cwd: A }).out === '', 'good inventory line flagged');
+  const bad = runHook('check-write', { tool_name: 'Edit', tool_input: { file_path: inv, new_string: '- prd vnet vnet-a 10.0.0.0/16' }, cwd: A });
+  ok(/"decision":"block"/.test(bad.out) && /9 fields/.test(bad.out), `bad inventory line passed: ${bad.out}`);
+});
+
+test('hooks: session start flags memory files over their limit and a stale workspace, silent otherwise', () => {
+  ok(runHook('session-start', { cwd: A }).out === '', 'noisy on a healthy workspace');
+  const now = join(A, 'NOW.md'); const before = readFileSync(now, 'utf8');
+  appendFileSync(now, Array.from({ length: 120 }, (_, i) => `- item ${i}`).join('\n'));
+  const cfgPath = join(A, '.engineering-framework.json'); const cfgText = readFileSync(cfgPath, 'utf8');
+  writeFileSync(cfgPath, JSON.stringify({ ...JSON.parse(cfgText), version: '0.0.1' }));
+  const r = runHook('session-start', { cwd: A }).out;
+  ok(/NOW\.md is \d+ lines/.test(r) && /tidy/.test(r) && /v0\.0\.1/.test(r), `session start: ${r}`);
+  writeFileSync(now, before); writeFileSync(cfgPath, cfgText);
 });
 
 test('snapshot: saves, says when nothing changed, and fails loudly instead of claiming "nothing new"', () => {

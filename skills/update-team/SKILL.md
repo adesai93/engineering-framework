@@ -1,6 +1,6 @@
 ---
 name: update-team
-description: Pull the latest rulebook and refresh this workspace. Use only when the user says "update the team".
+description: Pulls the latest rulebook and refreshes this workspace. Use only when the user says "update the team".
 invocation: user
 ---
 # update-team

@@ -1,6 +1,6 @@
 ---
 name: check-setup
-description: Check this tool and workspace are set up correctly. Use only when the user says "check setup".
+description: Checks that this tool and workspace are set up correctly. Use only when the user says "check setup".
 invocation: user
 ---
 # check-setup

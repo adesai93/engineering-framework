@@ -1,6 +1,6 @@
 ---
 name: tidy
-description: Compact the workspace memory files. Use when the user says "tidy", "clean up", or a file is over its limit (context.md ~120 lines, NOW.md ~100, rules.md ~80, a project log over ~300).
+description: Compacts the workspace memory files. Use when the user says "tidy", "clean up", or a file is over its limit (context.md ~120 lines, NOW.md ~100, rules.md ~80, a project log over ~300).
 ---
 # Tidy
 
