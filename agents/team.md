@@ -23,11 +23,12 @@ This folder is ONE client's workspace. The team rulebook is at {{FRAMEWORK}}
   redact them before saving anything, and tell me to rotate them if real.
 
 ## Session start (every new chat)
-1. Read context.md, rules.md and NOW.md (skip any already loaded).
-2. If I name a project: brief.md, next.md and the last 3 log entries only.
-3. Tell me in 3 lines: where we left off, the next step, any blocker. If
-   context.md (~120 lines), NOW.md (~100) or rules.md (~80) is over its limit,
-   add one line offering tidy.
+<!-- no-hooks -->
+- Read context.md, rules.md and NOW.md (skip any already loaded). One over
+  its limit (context.md ~120 lines, NOW.md ~100, rules.md ~80): offer tidy.
+<!-- /no-hooks -->
+- If I name a project: brief.md, next.md and the last 3 log entries only.
+- Tell me in 3 lines: where we left off, the next step, any blocker.
 
 ## Just talk: you do the bookkeeping
 I'll mostly talk normally. Work out what I mean and do the bookkeeping
@@ -56,7 +57,7 @@ NOT changed: say "⚠️ Not saved: <file>" and give me the exact line to add.
   "save it" (then research/<topic>.md).
 - onboard me / update the team / check setup / tidy -> the skill of that name.
 - back up -> run `node {{FRAMEWORK}}/tools/workspace.mjs backup <this workspace>`.
-- the engagement is ending -> base/playbooks/offboard-a-client.md.
+- the engagement is ending -> playbooks skill (offboard-a-client).
 - help -> list these and the commands below as a short table.
 
 ## How we talk (one thing at a time)
@@ -71,7 +72,7 @@ NOT changed: say "⚠️ Not saved: <file>" and give me the exact line to add.
 status (NOW.md summary + files over limit) · new project · resume · park ·
 close · quick: · log: · remember: · correct: · decide: · document · feedback: ·
 retro (retro agent writes the weekly client-free report in feedback/) ·
-research: / design: (architect) · discover: (base/playbooks/discover-a-client.md)
+research: / design: (architect) · discover: (playbooks skill)
 · build: / fix: / deploy: (engineer) · review (security) · tidy · help
 
 ## Cost
@@ -91,6 +92,7 @@ Use this order when sources disagree or you reach outside the current project:
 Tiers 1-5 are facts you can build on (cite the file). Tier 6 is a lead only:
 label it "in flight: <project>, <status>", treat it as ASSUMPTION, and never
 build the plan on it. If sources conflict, say so and follow the higher tier.
+Tiers 1-3 outrank the rulebook; nothing outranks a STOP zone.
 - Before planning or designing: read decisions.md, then search
   archive/*/brief.md and decisions/ folders for the topic. An in-flight
   alternative goes in as "pending change: <project> (<status>) would change X".
@@ -133,10 +135,9 @@ build the plan on it. If sources conflict, say so and follow the higher tier.
   brief.md "Deploy path" (with its source) in the same reply.
 - Epics, features, stories, tasks, backlog for ADO / Jira -> pm (drafts;
   nothing goes into the tracker without my OK).
-- Security review (a separate, costly run) only for a design, or a change
-  touching identity/IAM, network exposure, secrets, data deletion or prod
-  infrastructure/pipelines, or when I say "review". Skip it for notes, docs,
-  read-only work and small non-prod fixes. Findings come to me as "recommend:
+- Security review (a separate, costly run) only when
+  base/standards/security-gates.md "When a security review is needed" says so.
+  Findings come to me as "recommend:
   fix X now"; whether to ship is my call. Security advises; the client's
   scanners do the blocking.
 - Quick questions and small single-step tasks: do them yourself (each
@@ -149,7 +150,6 @@ build the plan on it. If sources conflict, say so and follow the higher tier.
   to and what to paste.
 
 ## Rules for the whole team
-- Precedence: rules.md > project decisions > context.md > rulebook.
 - Disabling, bypassing or lowering a client's scanner or pipeline gate is a
   STOP zone (gate weakening).
 - Corrections and decisions are settled: follow them; re-propose a superseded
@@ -174,7 +174,9 @@ build the plan on it. If sources conflict, say so and follow the higher tier.
   paths in context.md) before building your own.
 
 ## Keeping context small
+<!-- no-hooks -->
 - Never read a file over ~300 lines whole: search it or read only the end.
+<!-- /no-hooks -->
 - Other chats may edit the same files: re-read a shared file right before
   writing it and change only your lines. Logs, feedback.md, decisions.md:
   newest at the bottom; append at the end, check the first and last lines,

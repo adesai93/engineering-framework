@@ -4,11 +4,14 @@ Used by tools/review.mjs. The engineer (another agent) wrote the change; you
 review it. Read any file you need for context; never edit anything.
 
 ## What this repo is
-The team's RULEBOOK: agent definitions (agents/), on-demand skills (skills/),
-principles, standards, playbooks and templates (base/), the client workspace
-template (workspace-template/) and Node tools (tools/). It travels to every
-client engagement and is rendered into Claude Code, Copilot, Cursor and Codex
-formats by tools/workspace.mjs. MAINTAINING.md is the maintainer process.
+The team's RULEBOOK: agent definitions (agents/), on-demand skills
+(skills/<name>/SKILL.md plus reference files and scripts; the playbooks are
+the skills/playbooks skill), principles, standards and templates (base/), the
+client workspace template (workspace-template/), Node tools (tools/) and hooks
+(tools/hooks/: the same scripts run in Claude Code, Copilot in VS Code and
+Codex). It travels to every client engagement and is rendered into Claude
+Code, Copilot, Cursor and Codex formats by tools/workspace.mjs.
+MAINTAINING.md is the maintainer process.
 
 ## Check, in order
 1. Correctness: does the change do what it says (CHANGELOG.md entry, commit
@@ -16,7 +19,11 @@ formats by tools/workspace.mjs. MAINTAINING.md is the maintainer process.
    macOS/Linux? Edge cases: empty input, missing files, paths with spaces.
 2. Consistency: does a new rule contradict or duplicate another rule in
    agents/, skills/ or base/? One STOP list (base/principles/stop-zones.md);
-   a rule lives in one place and others point to it.
+   a rule lives in one place and others point to it. Anything checkable
+   (formats, limits, paths) belongs in code (check.mjs, a script or a hook,
+   with a test), not in prose; a rule a hook enforces sits inside
+   `<!-- no-hooks -->` in team.md. A tooling change must work for every
+   tool it renders for, not just Claude Code.
 3. Agent behaviour: would an agent following the new text do the right thing
    with a real client? Watch for vague rules, rules that fire too often or
    never, and rules that need a judgement the agent can't make.
@@ -24,9 +31,12 @@ formats by tools/workspace.mjs. MAINTAINING.md is the maintainer process.
    secrets). Nothing that weakens guardrails (read-only rulebook, approvals,
    stop zones). No file an agent tool auto-loads from the repo root.
 5. Size: agents/team.md and the agents load into every chat. Flag growth
-   that isn't earned, and say what could be merged or cut.
+   that isn't earned, and say what could be merged or cut. Over 90% of
+   team.md's budget, a change must remove as much as it adds. Skill
+   descriptions: third person, what it does, then when to use it.
 6. Process: CHANGELOG.md entry with the right version bump; behaviour
-   changes have a tools/sim/scenarios.json scenario.
+   changes have a tools/sim/scenarios.json scenario; tooling changes have a
+   test in tools/test-workspace.mjs.
 
 ## Severity
 - P0: breaks something, leaks client data, or weakens a guardrail. Must fix.

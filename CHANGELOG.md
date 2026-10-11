@@ -5,8 +5,8 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
-## [0.15.1] - 2026-10-10
-Maintainer tooling only; nothing changes in client workspaces.
+## [0.18.1] - 2026-10-11
+Maintainer tooling and a frontmatter fix; nothing changes how agents behave.
 ### Added
 - Build-review loop for rulebook changes: Claude builds, Codex reviews.
   `node tools/review.mjs` runs the check, sends the branch diff to
@@ -14,8 +14,94 @@ Maintainer tooling only; nothing changes in client workspaces.
   back JSON findings (P0/P1/P2). The engineer fixes or disputes each one in a
   reply file; Codex sees the replies next round. Stops on pass or after 3
   rounds, then the maintainer decides. `log` prints the history for the PR
-  body.
-  Process in MAINTAINING.md.
+  body. Process in MAINTAINING.md: for agents/, skills/, base/,
+  workspace-template/ and tools/ changes, before the one simulation run.
+- check.mjs: agent and skill frontmatter values must be valid plain YAML
+  (no ": " or " #" inside, no leading quote or YAML symbol).
+### Fixed
+- agents/retro.md: its description had `"retro": writes`, invalid YAML, so
+  GitHub showed an error on the file (generated files were quoted and fine).
+
+## [0.18.0] - 2026-10-11
+The hooks work in every tool that has them, not just Claude Code.
+### Added
+- Copilot in VS Code (`.github/hooks/engineering-framework.json`, VS Code
+  agent hooks, preview) and Codex (`.codex/hooks.json`, on apply_patch file
+  edits) run the same hook scripts as Claude Code. lib.mjs maps each tool's
+  names (create_file, replace_string_in_file, read_file, apply_patch, ...);
+  tools the hooks don't know pass through. The VS Code workspace turns off
+  chat.useClaudeHooks so the hooks don't run twice.
+- Test feeding VS Code and Codex tool calls to the hooks (22 total).
+### Changed
+- The session-start hook answers in the additionalContext form all three
+  tools read. SETUP: trust steps and the enforcement table per tool.
+- handoff: with no project, scripts are saved to log/scripts/.
+- simulate.mjs records every tool call (`<id>.tools.txt`); new checks
+  `tool-matches` (what the agent did, not what it said) and
+  `any-file-matches`; export-clean also needs the tool's verdict line in the
+  report. Fixed four scenarios that failed on correct behaviour
+  (correction-saved, retro-client-free, playbook-via-skill, handoff-packed).
+
+## [0.17.0] - 2026-10-10
+Architecture pass against Anthropic's agent, context-engineering and skill
+guidance and Microsoft's orchestration patterns: checkable rules move into
+code, procedures load only when needed.
+### Changed
+- Skills are folders: skills/<name>/SKILL.md plus reference files and scripts,
+  copied beside SKILL.md for every tool (a file dropped from a skill is removed
+  on update; an edited one is kept in .engfw-backup).
+- Playbooks moved from base/playbooks/ into the `playbooks` skill: one
+  description routes to the one playbook a task needs. The engineer and lead
+  point at the skill instead of listing files.
+- Skill descriptions in the third person, what then when (check.mjs enforces).
+- handoff: PowerShell paste blocks come from `skills/handoff/pack.mjs`
+  (read-only, pre-approved in Claude Code and Codex): hash computed over the
+  exact bytes, tabs converted, `'@` lines refused, output file checked. The
+  agent no longer hand-writes the block or skips the hash.
+- Claude Code: CLAUDE.md now holds the team rules itself (minus what hooks
+  enforce) and imports context.md, rules.md and NOW.md.
+- simulate.mjs passes each workspace's settings, so scenarios run with the
+  hooks and permissions users get (untrusted folders ignored them before).
+### Added
+- Claude Code hooks (tools/hooks/, wired into .claude/settings.json; hooks
+  added by hand are kept): session start flags memory files over their limit,
+  project logs over ~300 lines and a stale workspace; writes only inside the
+  workspace and its repos, never the rulebook; no whole reads of files over
+  ~300 lines; a possible secret or a malformed inventory.md line just written
+  goes back to the agent.
+- `<!-- no-hooks -->` blocks in team.md: rules a hook enforces load only for
+  tools without hooks.
+- Tests for skill reference files and all three hooks (21 total); scenarios
+  playbook-via-skill, handoff-packed, hook-blocks-outside-write.
+- Experiment branch `experiment/design-build-as-skills`: architect and
+  engineer as skills the lead loads, to compare against subagents by
+  simulation (pass rate and cost) before deciding.
+
+## [0.16.0] - 2026-10-10
+From a second review: fixes, one source per rule, and a way to keep the team small.
+### Changed
+- Security-review triggers live in one place, base/standards/security-gates.md
+  "When a security review is needed"; team.md, engineer and pm point at it,
+  and the engineer's trigger now also covers prod pipelines (it had drifted
+  to "prod" only). The security agent's description keeps a word-for-word
+  copy for tool routing.
+- team.md: the two precedence statements are merged into "Which information
+  to trust" (tiers 1-3 outrank the rulebook; nothing outranks a STOP zone).
+- base/principles/stop-zones.md works without plan mode: tools without it make no change
+  and run nothing that changes state until I say yes.
+### Fixed
+- handoff skill: scripts are written with explicit bytes (UTF-8 with BOM,
+  CRLF), so the hash matches between Windows PowerShell 5.1 and PowerShell 7
+  (Set-Content's encoding differs between them and broke the check).
+- `.gitattributes` (`* text=auto eol=lf`): the rulebook no longer looks
+  modified when git runs without the system `core.autocrlf` (on Windows this
+  failed all 16 workspace tests).
+### Added
+- check.mjs: "single review-trigger list" check; pm.md size budget; a note
+  when team.md passes 90% of its budget.
+- MAINTAINING.md "Prune": quarterly ablation (remove a rule, rerun its
+  scenarios, delete it if they still pass); each inbox pass proposes a cut.
+- SETUP.md: which rules each tool enforces vs. which are instructions only.
 
 ## [0.15.0] - 2026-10-10
 From an independent review of the repo, plus a new agent.

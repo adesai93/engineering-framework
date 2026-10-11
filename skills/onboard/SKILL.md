@@ -1,6 +1,6 @@
 ---
 name: onboard
-description: First-time setup of this client workspace. Use only when the user says "onboard me".
+description: Sets up this client workspace the first time. Use only when the user says "onboard me".
 invocation: user
 ---
 # onboard

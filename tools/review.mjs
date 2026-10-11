@@ -29,6 +29,7 @@ const hasRef = (r) => { try { git('rev-parse', '--verify', '--quiet', r); return
 const base = opt('--base', hasRef('origin/main') ? 'origin/main' : 'main');
 const die = (msg) => { console.error(`review: ${msg}`); process.exit(2); };
 if (!Number.isInteger(max) || max < 1) die('--max must be a whole number, 1 or more');
+if (!hasRef(base)) die(`base ${base} not found: run \`git fetch\`, or pass --base <branch>`);
 
 function codexCommand() {
   if (process.platform !== 'win32') return ['codex', []];

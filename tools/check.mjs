@@ -66,14 +66,27 @@ function checkAgents(ctx) {
       if (!h.label || !h.prompt) out.push(fail(a.file, 1, 'handoff needs "agent | label | prompt"'));
     }
   }
-  // Skills: name matches the file, a description that says when to use it.
+  // Skills: skills/<name>/SKILL.md, name matches the folder, a description that says what and when.
   let skills = [];
   try { skills = loadSkills(); } catch (e) { out.push(fail('skills/', 1, e.message)); }
   for (const s of skills) {
-    if (s.name !== posix.basename(s.file, '.md')) out.push(fail(s.file, 1, `name "${s.name}" must match the file name`));
+    if (s.name !== s.dir) out.push(fail(s.file, 1, `name "${s.name}" must match its folder name`));
+    if (/^(I |I'|You |Use this)/.test(s.description)) out.push(fail(s.file, 1, 'description: third person, what it does then when to use it (it is injected into the system prompt)'));
     if (!/^[a-z0-9-]+$/.test(s.name)) out.push(fail(s.file, 1, 'name: lowercase letters, digits, dashes'));
     if (s.description.length < 20 || s.description.length > 1000) out.push(fail(s.file, 1, 'description must say when to use it (20-1000 chars)'));
     if (names.has(s.name)) out.push(fail(s.file, 1, `skill "${s.name}" clashes with an agent name`));
+  }
+  // Source frontmatter must be valid YAML as written: GitHub (and any YAML reader)
+  // rejects a plain value with ": " or " #" in it, or one starting with a YAML symbol.
+  // Generated files quote their values; this is about the files in this repo.
+  for (const file of [...agents.map((a) => a.file), ...skills.map((s) => s.file)]) {
+    const src = lines(file);
+    if (src[0] !== '---') continue;
+    for (let i = 1; i < src.length && src[i] !== '---'; i++) {
+      const v = src[i].match(/^[\w-]+:\s+(.*)$/)?.[1]?.trim();
+      if (!v || /^(["']).*\1$/.test(v)) continue;
+      if (/: | #|^["'&*!|>%@`{[]/.test(v)) out.push(fail(file, i + 1, 'frontmatter value is not valid plain YAML (": ", " #" or a leading symbol): reword it or quote the whole value'));
+    }
   }
   try { render({ framework: '/fw', tools: ['claude', 'copilot', 'cursor', 'codex'], client: 'check' }); } catch (e) {
     out.push(fail('tools/workspace.mjs', 1, `render failed: ${e.message}`));
@@ -133,10 +146,11 @@ function zoneNames() {
   return new Set([...text.matchAll(/^## Zone \d+ — (.+)$/gm), ...text.matchAll(/^\d+\. ([^:]+):/gm)]
     .map((m) => m[1].trim().toLowerCase()));
 }
+const PLAYBOOK_RE = /^skills\/playbooks\/(?!SKILL\.md$)[^/]+\.md$/;
 function checkPlaybooks(ctx) {
   const out = [];
   const zones = ctx.fileSet.has(STOP_ZONES) ? zoneNames() : new Set();
-  for (const p of ctx.files.filter((f) => /^base\/playbooks\/[^/]+\.md$/.test(f))) {
+  for (const p of ctx.files.filter((f) => PLAYBOOK_RE.test(f))) {
     const ls = lines(p);
     // Each step's text = its numbered line + indented continuation lines.
     const steps = ls.flatMap((l, i) => {
@@ -241,19 +255,41 @@ function checkNoClientData(ctx) {
   return ctx.files.filter(isLocalOnly)
     .map((f) => fail(f, 1, 'local-only layer (client/project data) must not be committed'));
 }
+// d2. One list of security-review triggers (security-gates.md). Other docs point at it; the
+// security agent's description keeps a copy for tool routing, and it must match word for word.
+const GATES = 'base/standards/security-gates.md';
+const TRIGGERS = 'identity/IAM, network exposure, secrets, data deletion, or prod infrastructure / pipelines';
+function checkSingleReviewList(ctx) {
+  const out = [];
+  if (!ctx.fileSet.has(GATES)) return out;
+  if (!read(GATES).replace(/\s+/g, ' ').includes(TRIGGERS)) out.push(fail(GATES, 1, `review trigger list changed: update TRIGGERS in tools/check.mjs and agents/security.md to match`));
+  if (ctx.fileSet.has('agents/security.md') && !read('agents/security.md').includes(TRIGGERS)) {
+    out.push(fail('agents/security.md', 3, `description must list the triggers exactly as ${GATES}: "${TRIGGERS}"`));
+  }
+  for (const p of ctx.docs.filter((f) => f !== GATES && f !== 'agents/security.md' && f !== CHANGELOG && !ctx.generated.has(f))) {
+    lines(p).forEach((l, i) => {
+      if (/data deletion/i.test(l) && !l.includes('security-gates.md')) out.push(fail(p, i + 1, `restates the security-review triggers: point at ${GATES} instead`));
+    });
+  }
+  return out;
+}
 
 // g. CHANGELOG.md has a release; its latest version is what docs record as framework-version.
 // h. Size budgets: agents/team.md is loaded into EVERY chat, so weekly iterations
 // must not quietly grow it. ~4 chars per token.
 const BUDGETS = [['agents/team.md', 11000], ['agents/architect.md', 3000], ['agents/engineer.md', 3000],
-  ['agents/security.md', 3000], ['agents/retro.md', 3000]];
+  ['agents/security.md', 3000], ['agents/retro.md', 3000], ['agents/pm.md', 4000]];
 function checkBudgets(ctx) {
   const out = [];
-  const skillBudgets = ctx.files.filter((f) => /^skills\/[^/]+\.md$/.test(f)).map((f) => [f, 4000]);
+  // SKILL.md loads whole when a skill is used; reference files load one at a time.
+  const skillBudgets = ctx.files.filter((f) => /^skills\/[^/]+\/[^/]+\.md$/.test(f)).map((f) => [f, 4000]);
   for (const [f, max] of [...BUDGETS, ...skillBudgets]) {
     if (!ctx.fileSet.has(f)) continue;
     const n = read(f).length;
-    if (f === 'agents/team.md') ctx.teamTokens = Math.round(n / 4);
+    if (f === 'agents/team.md') {
+      ctx.teamTokens = Math.round(n / 4);
+      if (n > max * 0.9 && n <= max) ctx.notes.push(`agents/team.md is at ${Math.round(100 * n / max)}% of its budget: the next change must cut or merge as much as it adds (MAINTAINING.md).`);
+    }
     if (n > max) out.push(fail(f, 1, `${n} chars > budget ${max} (~${Math.round(max / 4)} tokens). Trim before adding.`));
   }
   return out;
@@ -291,6 +327,7 @@ const CHECKS = [
   ['path references resolve', checkReferences],
   ['playbook structure', checkPlaybooks],
   ['single STOP list', checkSingleStopList],
+  ['single review-trigger list', checkSingleReviewList],
   ['doc types <-> templates', checkTemplates],
   ['no client data committed', checkNoClientData],
   ['changelog release', checkChangelog],

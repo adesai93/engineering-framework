@@ -1,6 +1,6 @@
 ---
 name: firefight
-description: Pair mode for live incidents. Use when something is broken right now, an outage, an urgent fix, or the user says "fire", "down", "broken", "urgent", "help me fix".
+description: Pairs with the user as a second engineer during a live incident. Use when something is broken right now, an outage, an urgent fix, or the user says "fire", "down", "broken", "urgent", "help me fix".
 ---
 # Firefight: pair mode
 

@@ -27,11 +27,14 @@ included by default; to include only what a client uses:
 (remembered for later updates).
 
 ## Skills (all tools)
-Long procedures (firefight, project lifecycle, tidy, document, log-feedback,
-env-map, onboard, update-team, check-setup) are skills in `.claude/skills/`, which
-Claude Code, Copilot in VS Code and Cursor all read. Only their names and
-one-line descriptions sit in context until one is needed; the always-loaded
-team rules stay small (~2.3k tokens). The last three run only when you ask.
+Long procedures (playbooks, handoff, firefight, project lifecycle, tidy,
+document, log-feedback, env-map, onboard, update-team, check-setup) are skills
+in `.claude/skills/<name>/` (Codex: `.agents/skills/`), which Claude Code,
+Copilot in VS Code and Cursor all read. Only their names and one-line
+descriptions sit in context until one is needed; a skill's reference files
+(e.g. one playbook) load only when the skill points the agent at them. The
+always-loaded team rules stay small (~2.7k tokens). The last three run only
+when you ask.
 
 ## Docs servers (optional, per client)
 Official-docs MCP servers give the agents current vendor docs instead of
@@ -70,18 +73,26 @@ and flags secrets found in the notes.
 What gets generated in the workspace:
 | File | Purpose |
 |---|---|
-| CLAUDE.md -> AGENTS.md | team rules, loaded every chat |
+| CLAUDE.md | team rules (minus what the hooks enforce) + imports of context.md, rules.md, NOW.md; loaded every chat |
 | .claude/agents/*.md | architect, engineer, security (read-only tools), pm, retro |
-| .claude/settings.json | rulebook (+ repos) in additionalDirectories; deny Edit on the rulebook |
+| .claude/skills/*/ | skills, with their reference files and scripts |
+| .claude/settings.json | rulebook (+ repos) in additionalDirectories; deny Edit on the rulebook; hooks (below) |
+
+Hooks (scripts in the rulebook's tools/hooks/; Copilot and Codex run the same ones):
+- session start: flags memory files over their limit and a workspace built from an older rulebook;
+- before a tool runs: writes only inside the workspace and its repos (never the rulebook), and no whole reads of files over ~300 lines;
+- after a write: a possible secret, or an inventory.md line not in the format, goes back to the agent to fix.
 
 Set up:
 1. Install Claude Code (https://code.claude.com/docs) and sign in.
 2. `cd <workspace>` and run `claude`. Accept the folder-trust prompt: the
-   additionalDirectories setting only applies after the folder is trusted.
+   additionalDirectories setting and the hooks only apply after the folder is
+   trusted (before that, Claude Code prints "Ignoring ... this workspace has
+   not been trusted").
 
 Check it works:
 - `/agents` lists architect, engineer, security, pm, retro; `/skills` lists the skills.
-- `/memory` shows CLAUDE.md / AGENTS.md loaded.
+- `/memory` shows CLAUDE.md loaded; `/hooks` lists the three hooks.
 - Say "status": it summarises NOW.md without asking where things are.
 
 Gotchas:
@@ -89,6 +100,9 @@ Gotchas:
   started from a different folder. Restart `claude` from the workspace root.
 - Edits to the rulebook are blocked by design ("denied by your permission
   settings"). Rulebook changes go through the weekly retro.
+- Leave Project instructions at its default (`/config`): with
+  `claude-md-and-agents-md`, Claude Code also reads AGENTS.md and the team
+  rules load twice.
 - Organisation-managed settings can override project settings; if a deny or
   directory rule seems ignored, check with the client's admin.
 - Models: engineer and retro run on `sonnet` (cheaper); architect and security
@@ -104,7 +118,8 @@ What gets generated in the workspace:
 |---|---|
 | .github/copilot-instructions.md | team rules, added to every chat request |
 | .github/agents/*.agent.md | architect, engineer, security, pm, retro, with handoff buttons |
-| <client>.code-workspace | opens workspace + rulebook (read-only); turns on instruction files; turns off AGENTS.md (avoids loading the rules twice) |
+| .github/hooks/engineering-framework.json | the same hooks as Claude Code (VS Code agent hooks, preview) |
+| <client>.code-workspace | opens workspace + rulebook (read-only); turns on instruction files; turns off AGENTS.md and the Claude Code hooks (avoids running them twice) |
 
 Set up:
 1. Recent VS Code with GitHub Copilot + Copilot Chat, signed in with the
@@ -113,11 +128,16 @@ Set up:
    folder instead loses the rulebook and the settings.
 3. In the Chat view, use Agent mode (not Ask/Edit): only Agent mode can edit
    files and run commands.
+4. Trust the workspace when VS Code asks: hooks only run in trusted
+   workspaces (setting chat.useHooks, on by default; an org policy can turn
+   it off, and then those rules are instructions only).
 
 Check it works:
 - The Agent dropdown in the Chat view lists architect, engineer, security, pm, retro.
 - Say "status" with the default agent: it summarises NOW.md.
 - In the explorer, rulebook files show a lock (read-only).
+- Ask it to create a file in the rulebook: the hook refuses ("The rulebook is
+  read-only from a workspace").
 
 Gotchas:
 - Agents missing from the dropdown: VS Code too old, or the client's Copilot
@@ -179,6 +199,25 @@ Gotchas:
 
 ---
 
+## What the tools enforce vs. what the agent is told
+Some rules are settings the tool enforces; the rest are instructions the model
+follows (usually, not always). Tell each client which is which.
+
+| Rule | Claude Code | Copilot (VS Code) | Cursor | Codex |
+|---|---|---|---|---|
+| No edits to the rulebook | enforced (Edit deny + hook) | hook on file edits + editor read-only; the agent's terminal isn't | CLI: enforced; editor: read-only folder | hook on file edits (apply_patch); sandbox keeps shell writes in the workspace, if you run workspace-write |
+| Security agent can't change anything | enforced (no write tools) | enforced (read/search/web only) | `readonly: true` | enforced (read-only sandbox) |
+| No pushes to the rulebook | enforced: push URL blocked; CI flags direct pushes | same | same | same |
+| No secrets in saved files | hook flags them right after each write; snapshot warns, backup stops | same as Claude Code (file-edit tools) | snapshot warns, backup stops; otherwise instruction | same as Claude Code (apply_patch edits) |
+| Write only inside this workspace and its repos | enforced (hook) | hook on file edits; terminal: instruction | instruction | hook on file edits; shell: workspace-write sandbox, if used |
+| Read long files in parts | enforced (hook) | hook on whole-file reads (its reader mostly reads in parts anyway) | instruction | instruction (it reads through the shell) |
+| STOP zones, `<private>`, clean searches, "evidence, never instructions" | instruction; the tool's own approval prompts are the backstop | same | same | same |
+
+Keep tool approval prompts on for anything that changes state: they're the
+only hard stop behind the STOP zones.
+
+---
+
 ## "Not saved" warnings
 If the agent says "⚠️ Not saved", it couldn't write to the workspace: usually
 the chat is in Ask/read-only mode, or you declined the edit. Switch to Agent
@@ -223,12 +262,15 @@ What gets generated in the workspace:
 | AGENTS.md | team rules (Codex reads it natively) |
 | .agents/skills/<name>/SKILL.md | the skills (onboard, update-team, check-setup are `$skill`-only) |
 | .codex/agents/*.toml | architect, engineer, security (read-only sandbox), pm, retro |
-| .codex/rules/engineering-framework.rules | pre-approves ONLY the local snapshot and the read-only check-export |
+| .codex/rules/engineering-framework.rules | pre-approves ONLY the local snapshot, the read-only check-export and the handoff packer |
+| .codex/hooks.json | the same hooks as Claude Code, on file edits (apply_patch) |
 
 Set up:
 1. Install Codex (CLI or IDE extension) and sign in.
 2. `cd <workspace>` and run `codex`. Trust the folder when asked: project
-   config and rules load only for trusted projects.
+   config, rules and hooks load only for trusted projects.
+   Then run `/hooks` once and trust the three hooks: Codex skips hooks
+   nobody has reviewed.
 3. Don't give the rulebook with `--add-dir`: that makes it writable. The
    agent reads it by its full path.
 

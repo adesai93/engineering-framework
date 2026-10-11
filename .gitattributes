@@ -1,0 +1,5 @@
+# One line-ending policy for every machine, independent of core.autocrlf:
+# the rulebook must never look "modified" just because of how it was checked out.
+* text=auto eol=lf
+*.png binary
+*.svg text eol=lf
