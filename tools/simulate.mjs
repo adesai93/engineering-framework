@@ -25,6 +25,19 @@ const maxCost = Number(opt('--max-cost') || Infinity);
 
 const fixture = JSON.parse(readFileSync(join(ROOT, 'tools/sim/fixture.json'), 'utf8'));
 let { scenarios } = JSON.parse(readFileSync(join(ROOT, 'tools/sim/scenarios.json'), 'utf8'));
+// Skill trigger tests (tools/sim/triggers.json): a prompt that should load the
+// skill, and a near-miss that shouldn't. A skill counts as loaded if the agent
+// invoked it or read its SKILL.md.
+const loaded = (skill) => `Skill.*"${skill}"|skills[\\\\/]+${skill}[\\\\/]+SKILL\\.md`;
+for (const t of JSON.parse(readFileSync(join(ROOT, 'tools/sim/triggers.json'), 'utf8')).triggers) {
+  scenarios.push({ id: `trigger-${t.skill}-yes`, prompts: [t.yes], checks: [{ type: 'tool-matches', regex: loaded(t.skill) }] });
+  scenarios.push({ id: `trigger-${t.skill}-no`, prompts: [t.no], checks: [{ type: 'tool-not-matches', regex: loaded(t.skill) }] });
+}
+// --ablate: "is this rule still needed?" (quarterly prune). Runs only scenarios
+// with an "ablate" pattern, with the matching lines removed from the generated
+// instructions; a scenario that still passes without its rule is a pruning candidate.
+const ablate = args.includes('--ablate');
+if (ablate) scenarios = scenarios.filter((s) => s.ablate);
 if (only) scenarios = scenarios.filter((s) => only.includes(s.id));
 // Built at run time so no secret-shaped string is stored in the repo.
 const FAKE_SAS = `https://stcontosodataprd001.blob.core.windows.net/logs?sv=2024-11-04&sp=rw&${'si'}g=${'Xk3Jd9fQ2mN8vLp4R7tYwZ1a'}BcDeFg%3D`;
@@ -80,6 +93,7 @@ const mdText = (dir) => {
 
 function check(c, dir, reply, before, tools = []) {
   switch (c.type) {
+    case 'tool-not-matches': { const bad = tools.some((t) => new RegExp(c.regex, 'i').test(t)); return [!bad, bad ? `a tool call matched /${c.regex}/` : '']; }
     case 'tool-matches': { const ok = tools.some((t) => new RegExp(c.regex, 'i').test(t)); return [ok, ok ? '' : `no tool call matching /${c.regex}/`]; }
     case 'any-file-matches': {
       // The fact may rightly land in one of several files (e.g. a correction: rules.md or the resource's inventory line).
@@ -149,6 +163,14 @@ async function scenario(s, run = 1) {
   const dir = join(out, name); seed(dir);
   // Scenario-specific setup: extra or replaced files (e.g. a stale git lock) after the fixture commit.
   for (const [rel, content] of Object.entries(s.files || {})) { const p = join(dir, rel); mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, content); }
+  if (ablate) {
+    // Remove the rule under test from every generated instruction file, then commit, so
+    // "no changes" checks still compare against this starting point.
+    const re = new RegExp(s.ablate, 'i'); const strip = (p) => { if (existsSync(p)) writeFileSync(p, readFileSync(p, 'utf8').split('\n').filter((l) => !re.test(l)).join('\n')); };
+    for (const f of ['CLAUDE.md', 'AGENTS.md']) strip(join(dir, f));
+    const sk = join(dir, '.claude/skills'); if (existsSync(sk)) for (const d of readdirSync(sk)) strip(join(sk, d, 'SKILL.md'));
+    sh('git', ['add', '-A'], dir); sh('git', ['commit', '-q', '--allow-empty', '-m', 'ablate'], dir);
+  }
   const before = { projects: readdirSync(join(dir, 'projects')), head: sh('git', ['rev-parse', 'HEAD'], dir).trim(),
     // Rulebook files a scenario must not change (e.g. "just edit the rulebook").
     rulebook: Object.fromEntries(s.checks.filter((c) => c.type === 'rulebook-unchanged').map((c) => [c.file, readFileSync(join(ROOT, c.file), 'utf8')])) };
@@ -185,6 +207,14 @@ const results = scenarios.map((s) => {
 }).filter((r) => r.runs);
 const failed = results.filter((r) => !r.pass);
 writeFileSync(join(out, 'results.json'), JSON.stringify({ results, runs }, null, 2));
+if (ablate) {
+  // Here a failure is the good outcome: the rule is still doing its job.
+  console.log('\nRule check (scenario run WITHOUT its rule):');
+  for (const r of results) console.log(`  ${r.pass ? 'STILL PASSES: pruning candidate' : 'fails without it: rule needed '}  ${r.id}`);
+  writeFileSync(join(out, 'results.json'), JSON.stringify({ ablate: true, results, runs }, null, 2));
+  console.log(`\n${runs.length} run(s) · total $${spent.toFixed(2)} · replies in ${out}`);
+  process.exit(0);
+}
 if (criticalRuns > 1) for (const r of results.filter((x) => x.critical)) console.log(`${r.pass ? 'PASS' : 'FAIL'}  ${r.id.padEnd(28)} ${r.passed}/${r.runs} runs`);
 console.log(`\n${results.length - failed.length}/${results.length} scenarios passed${criticalRuns > 1 ? ` (critical: every run)` : ''} · ${runs.length} runs · total $${spent.toFixed(2)}${skipped ? ` · ${skipped} run(s) skipped at the --max-cost cap` : ''} · replies in ${out}`);
 if (failed.length) console.log(`Failed: ${failed.map((r) => `${r.id} (${r.passed}/${r.runs})`).join(', ')}`);

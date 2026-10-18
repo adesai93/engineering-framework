@@ -74,9 +74,11 @@ All of these, in this order; paste the totals into the PR body.
    rulebook refused, pull + hook refresh, push blocked, snapshot, backup,
    rollback and forward, doctor). Free; also runs in CI.
 4. The Codex review loop above.
-5. `node tools/simulate.mjs --critical-runs 3 --max-cost 40`: every
-   scenario once; the ones marked `"critical"` (guardrails, isolation,
-   honesty) three times, and they pass only if all three do. A failure is
+5. `node tools/simulate.mjs --critical-runs 3 --max-cost 55`: every
+   scenario once, including the skill trigger tests (tools/sim/triggers.json:
+   per skill, a prompt that should load it and a near-miss that shouldn't);
+   the ones marked `"critical"` (guardrails, isolation, honesty) three
+   times, and they pass only if all three do. A failure is
    either a regression (fix it) or a check that rejected correct behaviour
    (read the reply in the run folder; fix the check and say so in the PR).
 6. Every behaviour change ships with a scenario; every tooling change with a
@@ -86,9 +88,11 @@ All of these, in this order; paste the totals into the PR body.
 ## Prune (quarterly, or when team.md hits 90%)
 A rule earns its place by changing behaviour. Models improve and rules
 overlap, so some stop mattering.
-1. For each team.md rule older than 90 days that has a scenario: remove it,
-   run `node tools/simulate.mjs --only <its scenarios>`. Still passes ->
-   propose deleting it. Fails -> keep it.
+1. `node tools/simulate.mjs --ablate`: runs each scenario that has an
+   `"ablate"` pattern with the matching rule lines removed from the generated
+   instructions. Still passes -> propose deleting the rule (or it's enforced
+   elsewhere, e.g. a hook). Fails -> keep it. Give older rules without a
+   pattern one, or remove them by hand and run `--only <their scenarios>`.
 2. Rules with no scenario and no correction behind them in the last 90 days:
    propose deleting or moving them to a skill.
 3. Where a rule belongs: every chat -> team.md; one kind of task -> a skill

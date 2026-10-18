@@ -1,0 +1,21 @@
+{
+  "_comment": "Skill trigger tests: for each model-invoked skill, one prompt that should load it and one near-miss that should not. simulate.mjs turns each into a scenario (trigger-<skill>-yes / -no).",
+  "triggers": [
+    {"skill": "document", "yes": "Write the change record for the NSG rule we removed from nsg-snet-mgmt-prd yesterday.", "no": "What's the difference between an ADR and a change record, in general?"},
+    {"skill": "env-map", "yes": "Map the prd environment for me.", "no": "What's the address range of the orders spoke again?"},
+    {"skill": "firefight", "yes": "Prod is down: syslog stopped reaching Sentinel 10 minutes ago. Help me fix it now.", "no": "How does Sentinel ingest syslog in general? Just curious."},
+    {"skill": "handoff", "yes": "Give me a PowerShell script to run on the jump host that lists the NSG rules on nsg-snet-mgmt-prd.", "no": "Explain what this does: Get-AzNetworkSecurityGroup | Select-Object Name"},
+    {"skill": "log-feedback", "yes": "feedback: you keep giving me three options when I ask for one command.", "no": "remember: the syslog collectors restart every Sunday at 03:00 UTC"},
+    {"skill": "network-troubleshoot", "yes": "vm-orders-app-01 can't reach the payments SQL private endpoint on 1433. Help me find where it's blocked.", "no": "What's the CIDR of the hub VNet?"},
+    {"skill": "playbooks", "yes": "fix: since last week's deploy about 2% of requests to the orders API in dev return 502s behind the application gateway. Plan before changing anything.", "no": "What is an Azure application gateway, briefly?"},
+    {"skill": "project-lifecycle", "yes": "Let's start a new project: move the syslog collectors to new VMs over the next few weeks.", "no": "Quick question: does the Azure Monitor Agent support RHEL 9?"},
+    {"skill": "tidy", "yes": "tidy the workspace", "no": "Clean up this KQL for me: Syslog | where TimeGenerated > ago(1h) | where Facility == 'auth' | project Computer, SyslogMessage"},
+    {"skill": "toolchain-terraform", "yes": "Write a Terraform module for a storage account with a private endpoint, using our platform-iac conventions.", "no": "Write a Bicep module for a storage account with a private endpoint."},
+    {"skill": "toolchain-bicep-arm", "yes": "Write a Bicep module for a storage account with a private endpoint.", "no": "Write a Terraform module for a storage account with a private endpoint, using our platform-iac conventions."},
+    {"skill": "toolchain-kql", "yes": "Write a KQL query for failed Entra sign-ins in the last hour, grouped by user.", "no": "In one paragraph, what does Log Analytics data retention mean?"},
+    {"skill": "toolchain-azure-cli", "yes": "Give me the az CLI commands to list the rules on nsg-snet-mgmt-prd.", "no": "Give me the AWS CLI command to list the security groups in our prod account."},
+    {"skill": "toolchain-powershell", "yes": "Write a PowerShell function using Az cmdlets that lists NSG rules allowing 3389 from any source.", "no": "Give me the az CLI commands to list the rules on nsg-snet-mgmt-prd."},
+    {"skill": "toolchain-aws-cli", "yes": "Give me the AWS CLI command to list the security groups in our prod account.", "no": "Give me the az CLI commands to list the rules on nsg-snet-mgmt-prd."},
+    {"skill": "toolchain-pipelines-yaml", "yes": "Add a Checkov stage to the payments-svc Azure Pipelines YAML.", "no": "In one paragraph, what does Checkov check for?"}
+  ]
+}

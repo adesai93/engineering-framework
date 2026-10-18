@@ -129,8 +129,11 @@ export function render({ framework, tools, client, repos, toolchains }, root = R
   out['AGENTS.md'] = `${note('agents/team.md')}\n\n${team}`;
   const agents = loadAgents(root);
   // Toolchain skills are opt-in per client (--toolchains); default: all of them.
-  // .claude/skills is read by Claude Code, Copilot (VS Code) and Cursor; Codex gets .agents/skills below.
-  for (const s of tools.some((x) => ['claude', 'copilot', 'cursor'].includes(x)) ? loadSkills(root).filter((k) => !k.toolchain || !toolchains || toolchains.includes(k.toolchain)) : []) {
+  // One skills folder where possible, so no tool lists a skill twice: Claude Code
+  // needs .claude/skills, Codex needs .agents/skills (below); Copilot and Cursor
+  // read either. Both exist only when Claude Code and Codex are both in use.
+  const claudeSkills = tools.includes('claude') || (!tools.includes('codex') && tools.some((x) => ['copilot', 'cursor'].includes(x)));
+  for (const s of claudeSkills ? loadSkills(root).filter((k) => !k.toolchain || !toolchains || toolchains.includes(k.toolchain)) : []) {
     const fm = [`name: ${s.name}`, `description: ${yamlStr(s.description)}`];
     if (s.userOnly) fm.push('disable-model-invocation: true');
     Object.assign(out, skillFiles(s, '.claude/skills', fm, fw, note, root));
@@ -138,7 +141,11 @@ export function render({ framework, tools, client, repos, toolchains }, root = R
   if (tools.includes('claude')) {
     // Team rules without the hook-enforced parts; imports load the every-chat
     // memory files at launch and again after /compact.
-    out['CLAUDE.md'] = `${note('agents/team.md')}\n\n${teamWithHooks}\n@context.md\n@rules.md\n@NOW.md\n`;
+    // Cursor reads CLAUDE.md as well as AGENTS.md: with Cursor in use, CLAUDE.md
+    // only points at AGENTS.md so the team rules load once in every tool.
+    out['CLAUDE.md'] = tools.includes('cursor')
+      ? `${note('agents/team.md')}\n\n@AGENTS.md\n@context.md\n@rules.md\n@NOW.md\n`
+      : `${note('agents/team.md')}\n\n${teamWithHooks}\n@context.md\n@rules.md\n@NOW.md\n`;
     for (const a of agents) {
       const fm = [`name: ${a.name}`, `description: ${yamlStr(a.meta.description || '')}`];
       if (a.meta.claude_tools) fm.push(`tools: ${a.meta.claude_tools}`);
@@ -202,6 +209,15 @@ export function render({ framework, tools, client, repos, toolchains }, root = R
     }
     // Cursor agent permissions (documented for the Cursor CLI): no writes to the rulebook.
     out['.cursor/cli.json'] = JSON.stringify({ permissions: { deny: [`Write(${fw}/**)`] } }, null, 2) + '\n';
+    // Cursor hooks (the same scripts; lib.mjs speaks Cursor's format). Fail-open by
+    // design (no failClosed): a broken check never stops the user's work; doctor flags it.
+    const cursorHook = (name, matcher) => [{ command: hookCmd(fw, name), timeout: 15, ...(matcher ? { matcher } : {}) }];
+    out['.cursor/hooks.json'] = JSON.stringify({ version: 1, hooks: {
+      sessionStart: cursorHook('session-start'),
+      beforeShellExecution: cursorHook('guard-tool'),
+      preToolUse: cursorHook('guard-tool', 'Write|Delete'),
+      postToolUse: cursorHook('check-write', 'Write'),
+    } }, null, 2) + '\n';
   }
   // VS Code and Cursor: one workspace file opening this workspace + repos + the rulebook.
   if (tools.includes('copilot') || tools.includes('cursor')) {
@@ -215,6 +231,11 @@ export function render({ framework, tools, client, repos, toolchains }, root = R
         'chat.useAgentsMdFile': false, // Copilot: don't also load AGENTS.md (same rules twice)
         'chat.useClaudeMdFile': false, // ...nor CLAUDE.md, when the workspace is also set up for Claude Code
         'chat.useClaudeHooks': false, // ...nor .claude/settings.json hooks: .github/hooks has the same ones
+        // Each agent and skill once: VS Code also reads .claude/agents and every skills folder.
+        ...(tools.includes('copilot') ? {
+          'chat.agentFilesLocations': { '.github/agents': true, '.claude/agents': false },
+          'chat.agentSkillsLocations': { '.claude/skills': claudeSkills, '.agents/skills': !claudeSkills },
+        } : {}),
         'files.readonlyInclude': { [`${fw}/**`]: true },
         // Copilot: auto-approve ONLY the local snapshot command, with a plain message
         // and nothing chained after it (no quotes, ;, &, |, $ or backticks inside).
@@ -390,6 +411,16 @@ function install(ws, cfg) {
     console.log(`  wrote ${rel}`);
   }
   if (unsure) console.log(`  NOTE couldn't tell whether ${unsure} generated file(s) had local edits (first update with edit tracking, or an older updater ran since), so copies are in ${BACKUP_DIR}/${bk.dir}/. Delete that folder if you never edited them.`);
+  // Files we generated last time but no longer do (a tool dropped, a skills folder
+  // merged): left behind they'd load rules or skills twice. Edited ones are kept.
+  for (const rel of Object.keys(prev.generated || {})) {
+    const p = join(ws, rel);
+    if (files[rel] || !existsSync(p)) continue;
+    const old = read(p);
+    if (!trusted || sha(old) !== prev.generated[rel]) keepCopy(ws, rel, old, bk);
+    rmSync(p);
+    console.log(`  removed ${rel} (no longer generated)`);
+  }
   if (cfg.tools.includes('claude')) { writeClaudeSettings(ws, cfg.framework, cfg.repos); console.log('  wrote .claude/settings.json'); }
   // Merge with what's there: keep settings other commands own (backupDir, lastBackup).
   writeFileSync(join(ws, CONFIG), JSON.stringify({ ...prev, ...cfg, version: frameworkVersion(), commit, generated, generatedCommit: commit }, null, 2) + '\n');
@@ -713,6 +744,13 @@ function cmdDoctor(path) {
   if (!existsSync(join(ws, CONFIG))) { fix(`${ws} is not a workspace. Open the workspace folder, not the rulebook or a repo.`); return; }
   const cfg = JSON.parse(read(join(ws, CONFIG)));
   ok(`Workspace "${cfg.client}" for ${cfg.tools.join(', ')}`);
+  // Files for a tool this workspace isn't set up for: other tools read them too,
+  // so rules or skills would load twice.
+  const TOOL_FILES = { claude: ['CLAUDE.md', '.claude/agents'], copilot: ['.github/copilot-instructions.md', '.github/agents'], cursor: ['.cursor/agents', '.cursor/hooks.json'], codex: ['.codex/agents', '.agents/skills'] };
+  for (const [t, paths] of Object.entries(TOOL_FILES)) {
+    const here = cfg.tools.includes(t) ? [] : paths.filter((f) => existsSync(join(ws, f)));
+    if (here.length) fix(`${here.join(', ')}: files for ${t}, which this workspace isn't set up for; other tools read them too, so rules or skills can load twice. Delete them, or recreate the workspace files with ${t} included.`);
+  }
   if (cfg.version !== frameworkVersion() || (cfg.commit && st.commit !== 'unknown' && cfg.commit !== st.commit)) {
     fix(`Workspace was generated from v${cfg.version} (${cfg.commit || 'unknown commit'}), rulebook is v${frameworkVersion()} (${st.commit}): run \`update ${slash(ws)}\`.`);
   } else ok('Workspace generated from the current rulebook');

@@ -5,6 +5,31 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.20.0] - 2026-10-18
+Cursor gets the hooks, every tool loads each rule once, and the tests check
+which skill fires and whether a rule still earns its place.
+### Added
+- Cursor hooks (`.cursor/hooks.json`): the same scripts as Claude Code, Copilot
+  and Codex, in Cursor's format (lib.mjs translates): confirm once on shell
+  commands, rulebook and outside-workspace writes refused, secrets and
+  instruction-shaped text sent back after writes, session-start warnings. Fail
+  open by design: a broken check never blocks work.
+- Load map test: for all 15 combinations of the four tools, each tool loads the
+  team rules once and each skill and agent once.
+- Skill trigger tests (tools/sim/triggers.json): 16 skills x (a prompt that
+  should load it + a near-miss that shouldn't); new check `tool-not-matches`.
+- `simulate.mjs --ablate`: reruns scenarios with their rule removed; one that
+  still passes is a pruning candidate (MAINTAINING.md "Prune").
+### Fixed
+- Rules, skills and agents no longer load twice when tools share a workspace:
+  one skills folder unless Claude Code and Codex are both in use; the VS Code
+  workspace stops Copilot reading `.claude/agents` and the second skills folder
+  (it listed 5 agents and 19 skills twice with Claude Code + Copilot + Codex);
+  with Cursor, CLAUDE.md points at AGENTS.md instead of repeating it.
+- `update` removes generated files a workspace no longer needs (edited ones
+  kept in .engfw-backup); `doctor` flags files for a tool the workspace isn't
+  set up for.
+
 ## [0.19.0] - 2026-10-18
 Protections that never block a decision you've made, and network troubleshooting.
 ### Added
