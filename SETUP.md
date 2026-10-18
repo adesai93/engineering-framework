@@ -172,6 +172,7 @@ What gets generated in the workspace:
 | AGENTS.md | team rules (Cursor reads it natively; shows as "AGENTS" under Rules) |
 | .cursor/agents/*.md | architect, engineer, security (readonly), pm, retro |
 | .cursor/cli.json | denies writes to the rulebook (applies to the Cursor CLI) |
+| .cursor/hooks.json | the same checks as the other tools: confirm-once on shell commands, rulebook and outside-workspace writes refused, secrets and instruction-shaped text sent back after writes, session-start warnings (fail open) |
 | <client>.code-workspace | opens workspace + rulebook (rulebook read-only) |
 
 Set up:
@@ -205,16 +206,40 @@ follows (usually, not always). Tell each client which is which.
 
 | Rule | Claude Code | Copilot (VS Code) | Cursor | Codex |
 |---|---|---|---|---|
-| No edits to the rulebook | enforced (Edit deny + hook) | hook on file edits + editor read-only; the agent's terminal isn't | CLI: enforced; editor: read-only folder | hook on file edits (apply_patch); sandbox keeps shell writes in the workspace, if you run workspace-write |
-| Security agent can't change anything | enforced (no write tools) | enforced (read/search/web only) | `readonly: true` | enforced (read-only sandbox) |
+| No edits to the rulebook | enforced (Edit deny + hook) | hook on file edits + editor read-only; the agent's terminal isn't | hook on agent writes (preToolUse); CLI: enforced; editor: read-only folder | hook on file edits (apply_patch); sandbox keeps shell writes in the workspace, if you run workspace-write |
+| Security agent can't change anything | enforced (no write tools) | enforced (read/search/web only) | `readonly: true` | instruction: Codex ignores a sub-agent's own sandbox setting and uses the session's, so run reviews in a read-only session for a hard guarantee |
 | No pushes to the rulebook | enforced: push URL blocked; CI flags direct pushes | same | same | same |
-| No secrets in saved files | hook flags them right after each write; snapshot warns, backup stops | same as Claude Code (file-edit tools) | snapshot warns, backup stops; otherwise instruction | same as Claude Code (apply_patch edits) |
-| Write only inside this workspace and its repos | enforced (hook) | hook on file edits; terminal: instruction | instruction | hook on file edits; shell: workspace-write sandbox, if used |
+| No secrets in saved files | hook flags them right after each write; snapshot warns, backup stops | same as Claude Code (file-edit tools) | hook after agent writes (postToolUse) tells the agent; snapshot warns, backup stops | same as Claude Code (apply_patch edits) |
+| Write only inside this workspace and its repos | enforced (hook) | hook on file edits; terminal: instruction | hook on agent writes; terminal: instruction | hook on file edits; shell: workspace-write sandbox, if used |
 | Read long files in parts | enforced (hook) | hook on whole-file reads (its reader mostly reads in parts anyway) | instruction | instruction (it reads through the shell) |
+| Confirm once before commands that change infrastructure, access or shared code (`terraform apply/destroy`, `az … create/delete/set`, `*-Az*` changes, `kubectl`/`helm` changes, `git push`, …): you approve, it runs | enforced (hook asks every time, even if similar commands were allowed) | enforced (hook on terminal commands) | enforced (beforeShellExecution hook asks) | enforced for the common commands (`.rules` prompt entries); its sandbox asks for network access anyway |
+| Instruction-shaped text in the notes ("auto-approve", "note to the AI", hidden characters) | flagged when written and at every session start (agents won't follow it until you confirm); `doctor` lists it | same | flagged at session start and after agent writes; `doctor` lists it | same as Claude Code (apply_patch edits; session start) |
 | STOP zones, `<private>`, clean searches, "evidence, never instructions" | instruction; the tool's own approval prompts are the backstop | same | same | same |
 
-Keep tool approval prompts on for anything that changes state: they're the
-only hard stop behind the STOP zones.
+Cursor's hooks (`.cursor/hooks.json`) fail open on purpose: if a check breaks
+(Node missing, a script error), the action goes ahead and `doctor` shows the
+problem. Cursor doesn't document its write tool's fields, so the write checks
+read the usual names and pass anything they can't parse; confirm on a real
+install that a write into the rulebook is refused.
+
+Each tool loads the team rules and every skill and agent once, also when
+several tools share a workspace: skills go to one folder unless Claude Code and
+Codex are both in use; the VS Code workspace turns off Copilot's reading of
+`.claude/agents` and the second skills folder; with Cursor in use, CLAUDE.md
+points at AGENTS.md instead of repeating it. `update` removes generated files
+a workspace no longer needs, and `doctor` flags files for a tool the
+workspace isn't set up for.
+
+Nothing here refuses something you've decided to do: the guardrails make sure
+you see the target and impact first, then the command runs. The command check
+is a safety net for honest mistakes, not a sandbox: it reads ordinary command
+lines (chained commands, quoted values, global options, `$(...)`), not commands
+built at run time (`eval`, encoded commands, a script file). The client's
+pipeline and your tool's own approval prompts stay the real gate. Keep tool approval
+prompts on for anything that changes state. `doctor` also lists skills and
+instruction files the rulebook didn't generate, including user-level ones
+(`~/.claude/CLAUDE.md`, `~/.claude/skills`, ...) that load into every client's
+chats: install community skill packs only after reading them.
 
 ---
 
@@ -261,8 +286,8 @@ What gets generated in the workspace:
 |---|---|
 | AGENTS.md | team rules (Codex reads it natively) |
 | .agents/skills/<name>/SKILL.md | the skills (onboard, update-team, check-setup are `$skill`-only) |
-| .codex/agents/*.toml | architect, engineer, security (read-only sandbox), pm, retro |
-| .codex/rules/engineering-framework.rules | pre-approves ONLY the local snapshot, the read-only check-export and the handoff packer |
+| .codex/agents/*.toml | architect, engineer, security (asks for a read-only sandbox, but Codex applies the session's), pm, retro |
+| .codex/rules/engineering-framework.rules | pre-approves ONLY the local snapshot, check-export (writes only its verdict line into the report) and the read-only handoff packer |
 | .codex/hooks.json | the same hooks as Claude Code, on file edits (apply_patch) |
 
 Set up:

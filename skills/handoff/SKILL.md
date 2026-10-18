@@ -13,7 +13,10 @@ Before sending, the reply must pass all of these:
    "PASTE INTO: portal > Workbook > Advanced editor (JSON)". One destination
    per block. Never put GUI steps and shell commands in the same numbered
    list without labels, and never put a terminal command just before editor
-   steps.
+   steps. A block that changes something also names its target in the label
+   (`· TARGET: <subscription / account> (<env>)`) and selects it first
+   (`Set-AzContext -Subscription …`, `az account set -s …`, `--profile …`), so it
+   can't run against whatever happens to be active.
 2. Complete content, every time: the whole script or query, never a local
    path, a "same as before", or a replacement tail. Remote machines can't see
    this workspace. Also save it to projects/<p>/scripts/<name>, or

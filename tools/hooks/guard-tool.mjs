@@ -10,10 +10,26 @@
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { within } from '../workspace.mjs';
+import { within, needsConfirm } from '../workspace.mjs';
 import { input, workspace, call, asList, emit } from './lib.mjs';
 
 const inp = input();
+
+// "Confirm once": a shell command that changes infrastructure, access or shared
+// code always gets the tool's own approval prompt, even if similar commands were
+// allowed before. Nothing is refused: the user approves and it runs.
+const SHELLS = new Set(['Bash', 'PowerShell', 'run_in_terminal', 'shell', 'local_shell', 'exec_command']);
+if (SHELLS.has(inp.tool_name)) {
+  const ti = inp.tool_input || {};
+  const cmd = Array.isArray(ti.command) ? ti.command.join(' ') : String(ti.command ?? ti.cmd ?? '');
+  const what = needsConfirm(cmd);
+  if (what && workspace(inp)) {
+    emit({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'ask',
+      permissionDecisionReason: `${what}. Check the target (account, subscription, environment) and the impact the agent stated, then allow it to run.` } });
+  }
+  process.exit(0);
+}
+
 const c = call(inp);
 const here = c.kind && c.files.length ? workspace(inp) : null;
 if (!here) process.exit(0);

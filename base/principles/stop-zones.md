@@ -9,6 +9,13 @@ what you intend to do and why, and wait for an explicit yes (without plan
 mode: make no change and run nothing that changes state until then).
 Approval covers that one action only.
 
+Keep it to one confirmation: the action, its target (account / subscription
+/ environment), the impact, and how to undo it, in a few lines. Once I say
+yes, do it: don't ask again, argue, or water it down. These zones make sure I
+decide with the facts in front of me; they never stop me doing what I've
+decided. (The tool may show its own approval prompt for the same command:
+that is the same confirmation, not a second one.)
+
 ## Zone 1 — Architecture design
 - Choosing or changing the design of a system (you want the thinking).
 

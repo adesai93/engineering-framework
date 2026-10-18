@@ -10,6 +10,8 @@ Work beside me as a second engineer while I fix something live:
   each check would show and why.
 - Help me fix it yourself; no specialist hand-offs or ceremony. Still stop for
   base/principles/stop-zones.md.
+- Can't-reach, timeout or DNS symptoms: use the network-troubleshoot skill's
+  hop-by-hop facts and verdict table, at firefight speed.
 - If a project was in progress, mark it paused in NOW.md (one line).
 - Keep a UTC timeline as you go (project log, or log/<YYYY-MM>.md): write each
   new fact or action in the same turn, starting with the first one.

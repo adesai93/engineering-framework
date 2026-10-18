@@ -7,9 +7,34 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname, resolve, isAbsolute } from 'node:path';
 import { CONFIG } from '../workspace.mjs';
 
+// Cursor sends its own event names and snake_case fields and reads a different
+// answer format. input() turns its calls into the shape the hooks already know;
+// emit() answers in Cursor's format when the call came from Cursor.
+let cursor = false;
+const CURSOR_EVENTS = new Set(['sessionStart', 'beforeShellExecution', 'preToolUse', 'postToolUse', 'beforeReadFile', 'afterFileEdit']);
 export function input() {
-  try { return JSON.parse(readFileSync(0, 'utf8') || '{}'); } catch { return {}; }
+  let inp = {};
+  try { inp = JSON.parse(readFileSync(0, 'utf8') || '{}'); } catch { return {}; }
+  cursor = Boolean(inp.cursor_version) || CURSOR_EVENTS.has(inp.hook_event_name);
+  if (!cursor) return inp;
+  const cwd = inp.cwd || (inp.workspace_roots || [])[0];
+  const ti = inp.tool_input || {};
+  if (inp.hook_event_name === 'beforeShellExecution') return { ...inp, cwd, tool_name: 'Bash', tool_input: { command: inp.command } };
+  if (inp.tool_name === 'Shell') return { ...inp, cwd, tool_name: 'Bash', tool_input: { command: ti.command } };
+  if (['Write', 'Delete'].includes(inp.tool_name)) {
+    // Cursor doesn't document its write tool's fields: read the usual names; unknown shapes pass through.
+    const file = ti.file_path ?? ti.path ?? ti.target_file ?? ti.filePath;
+    return { ...inp, cwd, tool_name: 'Write', tool_input: { file_path: file, content: ti.contents ?? ti.content ?? ti.code_edit ?? ti.new_string } };
+  }
+  return { ...inp, cwd };
 }
+const toCursor = (obj) => {
+  const h = obj.hookSpecificOutput || {};
+  if (h.permissionDecision) return { permission: h.permissionDecision, user_message: h.permissionDecisionReason, agent_message: h.permissionDecisionReason };
+  if (h.additionalContext) return { additional_context: h.additionalContext };
+  if (obj.decision === 'block') return { additional_context: obj.reason };
+  return obj;
+};
 
 // The client workspace: Claude Code's project dir, else the nearest folder up
 // from cwd that has .engineering-framework.json. null = not in a workspace.
@@ -65,4 +90,4 @@ export function call(inp) {
 }
 
 export const asList = (r) => (r ? (Array.isArray(r) ? r : [r]) : []);
-export const emit = (obj) => process.stdout.write(JSON.stringify(obj));
+export const emit = (obj) => process.stdout.write(JSON.stringify(cursor ? toCursor(obj) : obj));

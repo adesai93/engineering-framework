@@ -5,6 +5,81 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.20.0] - 2026-10-18
+Cursor gets the hooks, every tool loads each rule once, and the tests check
+which skill fires and whether a rule still earns its place.
+### Added
+- Cursor hooks (`.cursor/hooks.json`): the same scripts as Claude Code, Copilot
+  and Codex, in Cursor's format (lib.mjs translates): confirm once on shell
+  commands, rulebook and outside-workspace writes refused, secrets and
+  instruction-shaped text sent back after writes, session-start warnings. Fail
+  open by design: a broken check never blocks work.
+- Load map test: for all 15 combinations of the four tools, each tool loads the
+  team rules once and each skill and agent once.
+- Skill trigger tests (tools/sim/triggers.json): 16 skills x (a prompt that
+  should load it + a near-miss that shouldn't); new check `tool-not-matches`.
+- `simulate.mjs --ablate`: reruns scenarios with their rule removed; one that
+  still passes is a pruning candidate (MAINTAINING.md "Prune").
+### Fixed
+- Rules, skills and agents no longer load twice when tools share a workspace:
+  one skills folder unless Claude Code and Codex are both in use; the VS Code
+  workspace stops Copilot reading `.claude/agents` and the second skills folder
+  (it listed 5 agents and 19 skills twice with Claude Code + Copilot + Codex);
+  with Cursor, CLAUDE.md points at AGENTS.md instead of repeating it.
+- `update` removes generated files a workspace no longer needs (edited ones
+  kept in .engfw-backup); `doctor` flags files for a tool the workspace isn't
+  set up for.
+- From the full behaviour run: snapshot, the client-free check and the handoff
+  packer are pre-approved with the path quoted or not, and from Claude Code's
+  PowerShell tool on Windows too (an agent retrying there was asked to
+  approve); handoff blocks that change something name and select their target
+  subscription/account first; Terraform and Bicep skill descriptions say which
+  requests they're not for (a Terraform request loaded both); `check-export`
+  now adds its verdict as the report's last line when it passes (the retro
+  left it out 1 time in 3); three scenario checks no longer reject
+  correct replies.
+
+## [0.19.0] - 2026-10-18
+Protections that never block a decision you've made, and network troubleshooting.
+### Added
+- Confirm once: commands that change infrastructure, access or shared code
+  (`terraform apply/destroy`, `az … create/delete`, Az PowerShell and Graph
+  changes, AWS, gcloud, kubectl/helm, pulumi, ansible, `git push`) always get
+  the tool's approval prompt, even if similar commands were allowed before;
+  nothing is refused. Claude Code: guard hook on Bash/PowerShell plus explicit
+  ask rules (they hold in every permission mode). Copilot: the same hook on
+  terminal commands. Codex: `prompt` rules for the common commands. Commands
+  that only change the laptop's CLI context (`az account set`, logins) don't ask.
+- base/principles/stop-zones.md: one confirmation (action, target, impact, undo); once the user
+  says yes, do it without asking again or arguing.
+- Memory protection (warnings only): text in the notes that reads like an
+  instruction to an AI ("note to the AI", "auto-approve", "ignore previous
+  instructions", hidden characters) is sent back to the agent when written,
+  flagged at every session start (agents don't follow it until the user
+  confirms), and listed by `doctor` and `snapshot`. rules.md holds only what
+  the user said. `doctor` also lists skills and instruction files the rulebook
+  didn't generate, including user-level ones that load into every client.
+- network-troubleshoot skill: Azure and on-prem paths hop by hop (NSG order,
+  routes, Azure Firewall, peering, DNS and private endpoints, VPN/ExpressRoute
+  and BGP, Palo Alto / FortiGate / ASA / Check Point / SRX / IOS commands),
+  ending in an ALLOW/DENY/INDETERMINATE verdict per hop with the deciding rule;
+  risky diagnostics confirmed once; before/after snapshots around a fix.
+  The connectivity playbook and firefight point to it.
+- Testing every release (MAINTAINING.md "Release tests"): `tools/test-lifecycle.mjs`
+  walks a client laptop's whole life end to end (outdated rulebook refused,
+  pull + hook refresh, push blocked, snapshot, verified backup, rollback and
+  forward, doctor on a planted instruction) and runs in CI with
+  test-workspace; `simulate.mjs --critical-runs 3` runs the 14 guardrail,
+  isolation and honesty scenarios three times and passes them only if every
+  run does; `--max-cost` caps a run; check `rulebook-unchanged`.
+  12 new scenarios (50 total): private text, another client's work, a request
+  to edit the rulebook, remember/undo, stale inventory, tidy offer, Jira
+  drafts, update the team, a long log, private-endpoint DNS, a confirmed
+  irreversible delete.
+### Fixed
+- SETUP: Codex applies the session's sandbox to sub-agents, so the security
+  agent's read-only sandbox there is an instruction, not enforcement.
+
 ## [0.18.1] - 2026-10-11
 Maintainer tooling and a frontmatter fix; nothing changes how agents behave.
 ### Added
