@@ -1,6 +1,6 @@
 ---
 name: toolchain-bicep-arm
-description: Azure Bicep and ARM JSON templates - authoring, linting, what-if, deployments. Use when editing *.bicep, *.bicepparam or ARM *.json templates, or deploying them.
+description: Azure Bicep and ARM JSON templates - authoring, linting, what-if, deployments. Use when editing *.bicep, *.bicepparam or ARM *.json templates, deploying them, or when the user asks for Bicep or ARM; not for Terraform work.
 toolchain: bicep-arm
 ---
 # Toolchain: Bicep / ARM

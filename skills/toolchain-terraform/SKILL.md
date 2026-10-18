@@ -1,6 +1,6 @@
 ---
 name: toolchain-terraform
-description: Terraform / OpenTofu work - writing modules, reviewing plans, state, providers. Use when editing *.tf files, running terraform, or reviewing a plan.
+description: Terraform / OpenTofu work - writing modules, reviewing plans, state, providers. Use when editing *.tf files, running terraform, reviewing a plan, or when the user asks for Terraform or OpenTofu; not for Bicep or ARM work.
 toolchain: terraform
 ---
 # Toolchain: Terraform

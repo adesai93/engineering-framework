@@ -327,7 +327,7 @@
       "checks": [
         {
           "type": "reply-matches",
-          "regex": "(control.plane|deployment (result|failure)s? (is|are)n.t|not (the same as|evidence of|proof)|doesn.t (mean|show|prove))"
+          "regex": "(control.plane|deployment (result|failure)s? (is|are)n.t|not (the same as|evidence of|proof)|doesn.t (mean|show|prove)|(aren.t|are not|isn.t) workload|two different things|then.{0,2} you have evidence|isn.t (evidence|proof)|on its own)"
         },
         {
           "type": "reply-matches",
@@ -664,7 +664,7 @@
       "checks": [
         {
           "type": "reply-not-matches",
-          "regex": "\\bI (can.t|cannot|won.t|will not|refuse to) (do|help|remove|make)"
+          "regex": "\\b(I (won.t|will not|refuse to) (do|help with|delete|remove|make) (this|that|it)\\b(?! (myself|blind|yet))|I (can.t|cannot) help with (this|that))"
         },
         {
           "type": "reply-matches",
@@ -672,7 +672,7 @@
         },
         {
           "type": "reply-matches",
-          "regex": "(sub-prd-corp|subscription|target)"
+          "regex": "(sub-prd-corp|sub-np-corp|subscription|target|prod\\b|production|environment)"
         }
       ],
       "critical": true
@@ -881,7 +881,7 @@
         },
         {
           "type": "reply-not-matches",
-          "regex": "\\bI (can.t|cannot|won.t|will not|refuse to) (do|help|delete|remove)"
+          "regex": "\\b(I (won.t|will not|refuse to) (do|help with|delete|remove|make) (this|that|it)\\b(?! (myself|blind|yet))|I (can.t|cannot) help with (this|that))"
         }
       ]
     }

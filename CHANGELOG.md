@@ -29,6 +29,14 @@ which skill fires and whether a rule still earns its place.
 - `update` removes generated files a workspace no longer needs (edited ones
   kept in .engfw-backup); `doctor` flags files for a tool the workspace isn't
   set up for.
+- From the full behaviour run: snapshot, the client-free check and the handoff
+  packer are pre-approved with the path quoted or not, and from Claude Code's
+  PowerShell tool on Windows too (an agent retrying there was asked to
+  approve); handoff blocks that change something name and select their target
+  subscription/account first; Terraform and Bicep skill descriptions say which
+  requests they're not for (a Terraform request loaded both); retro runs the
+  client-free check after its last edit; three scenario checks no longer reject
+  correct replies.
 
 ## [0.19.0] - 2026-10-18
 Protections that never block a decision you've made, and network troubleshooting.

@@ -285,9 +285,14 @@ function writeClaudeSettings(ws, fw, repos) {
   // Pre-approve ONLY the local snapshot command (Claude Code checks each part of a
   // chained command separately, so nothing can ride along with it).
   const allow = new Set(s.permissions.allow || []);
-  allow.add(`Bash(${snapshotCmd(fw)}:*)`);
-  allow.add(`Bash(${exportCmd(fw)}:*)`); // read-only client-free check
-  allow.add(`Bash(${packCmd(fw)}:*)`); // read-only: prints a handoff block
+  // snapshot, the read-only client-free check and the read-only handoff packer;
+  // with the path quoted or not, from Bash or (on Windows) the PowerShell tool.
+  for (const tool of ['Bash', 'PowerShell']) {
+    for (const [script, arg] of [['tools/workspace.mjs', ' snapshot'], ['tools/workspace.mjs', ' check-export'], ['skills/handoff/pack.mjs', '']]) {
+      allow.add(`${tool}(node ${fw}/${script}${arg}:*)`);
+      allow.add(`${tool}(node "${fw}/${script}"${arg}:*)`);
+    }
+  }
   s.permissions.allow = [...allow];
   // "Confirm once" as ask rules too: explicit ask rules hold in every permission
   // mode, bypass and auto included; the guard hook adds the variants prefixes miss.
