@@ -17,11 +17,13 @@ jobs:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
+          fetch-depth: 0 # test-lifecycle rolls back to the previous commit
       - uses: actions/setup-node@v5
         with:
           node-version: 22
       - run: node tools/check.mjs
       - run: node tools/test-workspace.mjs
+      - run: node tools/test-lifecycle.mjs
 
   # main changes only through pull requests (from the maintainer machine).
   # A commit pushed straight to main (e.g. from a client laptop) fails here,

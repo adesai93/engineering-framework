@@ -55,14 +55,33 @@ catches what the author's own model would repeat.
 4. Stop when it passes (exit 0), or at the round cap (exit 3, default 3
    rounds): then show me the open disagreements, both sides, and let me
    decide. Never raise the cap on your own.
-5. Behaviour changes: only now run `node tools/simulate.mjs` (step 6 of the
-   inbox process), once, on the version Codex passed: simulations cost money,
-   reviews of a draft don't need them.
+5. Behaviour changes: only now run the release tests below, once, on the
+   version Codex passed: simulations cost money, reviews of a draft don't
+   need them.
 6. Open the PR with `node tools/review.mjs log` in the body, so the review
    history travels with the change. `node tools/review.mjs reset` starts a
    fresh loop after a big rework.
 Codex needs to be installed and signed in (`codex login`). In Orca, Agents
 must be in Manual mode (SETUP.md); the loop itself runs from one Claude tab.
+
+## Release tests (every new version, before the PR)
+All of these, in this order; paste the totals into the PR body.
+1. `node tools/check.mjs`: consistency (references, budgets, STOP list).
+2. `node tools/test-workspace.mjs`: generation for all four tools, preserved
+   edits, path isolation, hooks, the command guard, memory checks, snapshot,
+   backup, export check. Free; also runs in CI.
+3. `node tools/test-lifecycle.mjs`: a client laptop's whole life (outdated
+   rulebook refused, pull + hook refresh, push blocked, snapshot, backup,
+   rollback and forward, doctor). Free; also runs in CI.
+4. The Codex review loop above.
+5. `node tools/simulate.mjs --critical-runs 3 --max-cost 40`: every
+   scenario once; the ones marked `"critical"` (guardrails, isolation,
+   honesty) three times, and they pass only if all three do. A failure is
+   either a regression (fix it) or a check that rejected correct behaviour
+   (read the reply in the run folder; fix the check and say so in the PR).
+6. Every behaviour change ships with a scenario; every tooling change with a
+   deterministic test. A bug found in use gets the test that would have caught
+   it before it's fixed.
 
 ## Prune (quarterly, or when team.md hits 90%)
 A rule earns its place by changing behaviour. Models improve and rules

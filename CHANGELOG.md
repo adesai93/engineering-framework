@@ -31,6 +31,17 @@ Protections that never block a decision you've made, and network troubleshooting
   ending in an ALLOW/DENY/INDETERMINATE verdict per hop with the deciding rule;
   risky diagnostics confirmed once; before/after snapshots around a fix.
   The connectivity playbook and firefight point to it.
+- Testing every release (MAINTAINING.md "Release tests"): `tools/test-lifecycle.mjs`
+  walks a client laptop's whole life end to end (outdated rulebook refused,
+  pull + hook refresh, push blocked, snapshot, verified backup, rollback and
+  forward, doctor on a planted instruction) and runs in CI with
+  test-workspace; `simulate.mjs --critical-runs 3` runs the 14 guardrail,
+  isolation and honesty scenarios three times and passes them only if every
+  run does; `--max-cost` caps a run; check `rulebook-unchanged`.
+  12 new scenarios (50 total): private text, another client's work, a request
+  to edit the rulebook, remember/undo, stale inventory, tidy offer, Jira
+  drafts, update the team, a long log, private-endpoint DNS, a confirmed
+  irreversible delete.
 ### Fixed
 - SETUP: Codex applies the session's sandbox to sub-agents, so the security
   agent's read-only sandbox there is an instruction, not enforcement.
