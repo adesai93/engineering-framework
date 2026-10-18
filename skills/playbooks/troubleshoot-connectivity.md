@@ -3,6 +3,8 @@
 1. Client context -> context.md (network topology, tooling, escalation path).
 2. Define the failing path: source -> destination, port, protocol.
 3. Layer-by-layer triage: DNS -> routing -> NSG/SG/firewall -> app/listener.
+   Azure and on-prem paths: the network-troubleshoot skill (facts per hop,
+   evaluation order, an ALLOW/DENY/INDETERMINATE verdict per hop).
 4. Use client's diagnostic tooling; log each finding as you go.
 5. Isolate root cause before changing anything.
 6. Change approval: follow the client's change process, if context.md defines

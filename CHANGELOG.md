@@ -5,6 +5,36 @@ versions follow [SemVer](https://semver.org/) — MAJOR when a rule changes mean
 (agents would behave differently), MINOR for new playbooks/standards/templates,
 PATCH for wording fixes. Pre-1.0: a meaning change bumps MINOR.
 
+## [0.19.0] - 2026-10-18
+Protections that never block a decision you've made, and network troubleshooting.
+### Added
+- Confirm once: commands that change infrastructure, access or shared code
+  (`terraform apply/destroy`, `az … create/delete`, Az PowerShell and Graph
+  changes, AWS, gcloud, kubectl/helm, pulumi, ansible, `git push`) always get
+  the tool's approval prompt, even if similar commands were allowed before;
+  nothing is refused. Claude Code: guard hook on Bash/PowerShell plus explicit
+  ask rules (they hold in every permission mode). Copilot: the same hook on
+  terminal commands. Codex: `prompt` rules for the common commands. Commands
+  that only change the laptop's CLI context (`az account set`, logins) don't ask.
+- STOP zones: one confirmation (action, target, impact, undo); once the user
+  says yes, do it without asking again or arguing.
+- Memory protection (warnings only): text in the notes that reads like an
+  instruction to an AI ("note to the AI", "auto-approve", "ignore previous
+  instructions", hidden characters) is sent back to the agent when written,
+  flagged at every session start (agents don't follow it until the user
+  confirms), and listed by `doctor` and `snapshot`. rules.md holds only what
+  the user said. `doctor` also lists skills and instruction files the rulebook
+  didn't generate, including user-level ones that load into every client.
+- network-troubleshoot skill: Azure and on-prem paths hop by hop (NSG order,
+  routes, Azure Firewall, peering, DNS and private endpoints, VPN/ExpressRoute
+  and BGP, Palo Alto / FortiGate / ASA / Check Point / SRX / IOS commands),
+  ending in an ALLOW/DENY/INDETERMINATE verdict per hop with the deciding rule;
+  risky diagnostics confirmed once; before/after snapshots around a fix.
+  The connectivity playbook and firefight point to it.
+### Fixed
+- SETUP: Codex applies the session's sandbox to sub-agents, so the security
+  agent's read-only sandbox there is an instruction, not enforcement.
+
 ## [0.18.1] - 2026-10-11
 Maintainer tooling and a frontmatter fix; nothing changes how agents behave.
 ### Added
