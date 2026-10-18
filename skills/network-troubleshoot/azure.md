@@ -16,8 +16,11 @@ Watcher enabled in that region (otherwise: INDETERMINATE, say why).
 
 ## NSGs
 - Effective rules (subnet + NIC combined, per NIC): `az network nic list-effective-nsg -g <rg> -n <nic>`
-- This exact flow: `az network watcher test-ip-flow -g <rg> --vm <vm> --direction Outbound --protocol TCP --local <src>:* --remote <dst>:<port>`
-  (and `--direction Inbound` on the destination VM). Returns the deciding rule.
+- This exact flow, leaving the source VM (local = the VM you name):
+  `az network watcher test-ip-flow -g <rg> --vm <src-vm> --direction Outbound --protocol TCP --local <src>:* --remote <dst>:<port>`
+- Arriving at the destination VM (local and remote swap):
+  `az network watcher test-ip-flow -g <rg> --vm <dst-vm> --direction Inbound --protocol TCP --local <dst>:<port> --remote <src>:60000`
+  Each returns Allow/Deny and the deciding rule.
 
 ## Firewall / NVA
 - Azure Firewall policy rules: `az network firewall policy rule-collection-group list -g <rg> --policy-name <policy>`
@@ -52,7 +55,5 @@ Watcher enabled in that region (otherwise: INDETERMINATE, say why).
 - VNet/NSG flow logs with Traffic Analytics: `NTANetAnalytics | where TimeGenerated > ago(1h) | where SrcIp == "<src>" and DestIp == "<dst>"`
   (FlowStatus Allowed/Denied). State the workspace and time window.
 
-## Gated (confirm once: they change something)
-`az network watcher test-connectivity` (installs the Network Watcher
-extension), `az network watcher packet-capture create` (extension + storage),
-`az vm run-command invoke` (runs code on the VM).
+
+Gated diagnostics (packet capture, test-connectivity, run-command): step 6 of this skill.

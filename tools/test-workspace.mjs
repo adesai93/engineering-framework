@@ -273,7 +273,11 @@ test('hooks: session start flags memory files over their limit and a stale works
 test('hooks: confirm once - state-changing commands always ask, everyday ones pass, nothing is refused', () => {
   const asks = (tool, command, cwd = A) => /"permissionDecision":"ask"/.test(runHook('guard-tool', { tool_name: tool, tool_input: { command }, cwd }).out);
   for (const [tool, cmd] of [['Bash', 'terraform apply tfplan'], ['Bash', 'az group delete -n rg-x --yes'], ['PowerShell', 'Remove-AzResourceGroup -Name rg-x'],
-    ['run_in_terminal', 'az role assignment create --assignee x --role Owner'], ['Bash', 'az account set -s sub && az vm delete -n v -g r'], ['Bash', 'git push origin main']]) {
+    ['run_in_terminal', 'az role assignment create --assignee x --role Owner'], ['Bash', 'az account set -s sub && az vm delete -n v -g r'], ['Bash', 'git push origin main'],
+    // Case-insensitive cmdlets, global options before the verb, a lone & between commands.
+    ['PowerShell', 'remove-azresourcegroup -Name prod'], ['Bash', 'aws --profile prod ec2 terminate-instances --instance-ids x'],
+    ['Bash', 'kubectl --context prod delete namespace app'], ['Bash', 'terraform -chdir=env/prd apply'], ['Bash', 'git -C repo push'],
+    ['Bash', 'az account set -s x & az vm delete -g r -n v']]) {
     ok(asks(tool, cmd), `${tool} "${cmd}" did not ask`);
   }
   for (const cmd of ['terraform plan -out tfplan', 'az account show -o table', 'az account set -s sub-prd', 'az network nic list-effective-nsg -g r -n n', 'az deployment group what-if -g r -f m.bicep', 'git status']) {

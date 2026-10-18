@@ -787,19 +787,24 @@ export function scanSecrets(ws) {
 // commands were allowed before); nothing here is refused. Commands that only
 // change this laptop's CLI context (az account set, login, extensions) aren't listed.
 const LOCAL_ONLY = /\baz\s+(account\s+set|config\s+set|extension\s+(add|update|remove)|login|logout|upgrade|bicep\s+(install|upgrade)|devops\s+configure|cloud\s+set)\b|\b(Set-AzContext|Select-AzSubscription|Connect-AzAccount|Disconnect-AzAccount|Import-AzContext|Enable-AzContextAutosave|Disable-AzContextAutosave)\b|\baws\s+(configure|sso\s+log(in|out))\b|\bgcloud\s+(config|auth)\b/i;
+// tool, then any options or arguments (global flags such as --profile, --context,
+// -chdir= or -C included), then the verb as a word of its own.
+const verbAfter = (tool, verbs) => new RegExp(`\\b${tool}\\b(?:\\s+\\S+){0,10}?\\s+(?:${verbs})(?=\\s|$)`, 'i');
 export const CONFIRM_COMMANDS = [
-  ['Terraform/OpenTofu state change', /\b(terraform|tofu)\s+(apply|destroy|import|taint|untaint|force-unlock|state\s+(rm|mv|push|replace-provider)|workspace\s+delete)\b/i],
-  ['Azure CLI change', /\baz\s+(?:[\w-]+\s+){0,5}?(delete|purge|create|create-for-rbac|update|set|assign|add|remove|start|stop|restart|deallocate|redeploy|deploy|import|scale|swap|reset|reset-credentials|regenerate|renew|revoke|lock|unlock|invoke|run-command|failover|test-connectivity)\b/i],
-  ['Azure REST write', /\baz\s+rest\b(?=[^|;&]*--method\s+(put|patch|post|delete))/i],
-  ['Azure PowerShell change', /\b(New|Set|Remove|Update|Add|Start|Stop|Restart|Move|Rename|Reset|Grant|Revoke|Enable|Disable|Register|Unregister|Publish|Import|Restore|Suspend|Resume)-Az[A-Z]\w*/],
+  ['Terraform/OpenTofu state change', verbAfter('(?:terraform|tofu)', 'apply|destroy|import|taint|untaint|force-unlock|state\\s+(?:rm|mv|push|replace-provider)|workspace\\s+delete')],
+  ['Azure CLI change', verbAfter('az', 'delete|purge|create|create-for-rbac|update|set|assign|add|remove|start|stop|restart|deallocate|redeploy|deploy|import|scale|swap|reset|reset-credentials|regenerate|renew|revoke|lock|unlock|invoke|run-command|failover|test-connectivity')],
+  ['Azure REST write', /\baz\s+rest\b(?=[^|;]*--method\s+(put|patch|post|delete))/i],
+  ['Azure PowerShell change', /\b(New|Set|Remove|Update|Add|Start|Stop|Restart|Move|Rename|Reset|Grant|Revoke|Enable|Disable|Register|Unregister|Publish|Import|Restore|Suspend|Resume)-Az[a-z]\w*/i],
   ['Azure REST write (PowerShell)', /\bInvoke-AzRestMethod\b(?=[^|;]*-Method\s+(Put|Patch|Post|Delete))/i],
-  ['Entra ID / Graph change', /\b(New|Set|Remove|Update|Add|Grant|Revoke)-(Mg|AzureAD|Entra)[A-Z]\w*/],
-  ['AWS S3 write', /\baws\s+s3\s+(cp|mv|rm|sync|rb|mb)\b/i],
-  ['AWS change', /\baws\s+[\w-]+\s+(create|delete|put|update|modify|terminate|stop|start|reboot|attach|detach|associate|disassociate|authorize|revoke|run|deregister|register|replace|enable|disable|tag|untag)[\w-]*/i],
-  ['Google Cloud change', /\bgcloud\s+(?:[\w-]+\s+){0,5}?(create|delete|update|deploy|set-iam-policy|add-iam-policy-binding|remove-iam-policy-binding|resize|reset|stop|start)\b/i],
-  ['Kubernetes / Helm change', /\bkubectl\s+(apply|create|delete|replace|patch|scale|drain|cordon|uncordon|taint|edit|set|annotate|label|rollout\s+(restart|undo))\b|\bhelm\s+(install|upgrade|uninstall|delete|rollback)\b/i],
-  ['Pulumi / Ansible run', /\bpulumi\s+(up|destroy|import|refresh)\b|\bansible-playbook\b(?![^|;&]*--check)/i],
-  ['git push or history rewrite', /\bgit\s+(push|reset\s+--hard|clean\s+-[a-z]*f|branch\s+-D|filter-branch|filter-repo)\b/i],
+  ['Entra ID / Graph change', /\b(New|Set|Remove|Update|Add|Grant|Revoke)-(Mg|AzureAD|Entra)[a-z]\w*/i],
+  ['AWS S3 write', verbAfter('aws', 's3\\s+(?:cp|mv|rm|sync|rb|mb)')],
+  ['AWS change', verbAfter('aws', '(?:create|delete|put|update|modify|terminate|stop|start|reboot|attach|detach|associate|disassociate|authorize|revoke|run|deregister|register|replace|enable|disable|tag|untag)(?:-[\\w-]+)?')],
+  ['Google Cloud change', verbAfter('gcloud', 'create|delete|update|deploy|set-iam-policy|add-iam-policy-binding|remove-iam-policy-binding|resize|reset|stop|start')],
+  ['Kubernetes change', verbAfter('kubectl', 'apply|create|delete|replace|patch|scale|drain|cordon|uncordon|taint|edit|set|annotate|label|rollout\\s+(?:restart|undo)')],
+  ['Helm change', verbAfter('helm', 'install|upgrade|uninstall|delete|rollback')],
+  ['Pulumi run', verbAfter('pulumi', 'up|destroy|import|refresh')],
+  ['Ansible run', /\bansible-playbook\b(?![^|;]*--check)/i],
+  ['git push or history rewrite', verbAfter('git', 'push|reset\\s+--hard|clean\\s+-[a-z]*f[a-z]*|branch\\s+-D|filter-branch|filter-repo')],
 ];
 // Codex rules match command prefixes only, so they get the common cases by name.
 export const CODEX_CONFIRM = [
@@ -822,7 +827,8 @@ export const CLAUDE_ASK = [
 // Each part of a chained command is judged on its own, so a harmless first part
 // (az account set ... &&) never hides a change after it.
 export function needsConfirm(command) {
-  for (const part of String(command || '').split(/&&|\|\||[;|\n]/)) {
+  // Separators: && || ; | newline, and a lone & (run in background) between commands.
+  for (const part of String(command || '').split(/&&|\|\||[;|\n]|\s&(?=\s|$)/)) {
     if (LOCAL_ONLY.test(part)) continue;
     for (const [label, re] of CONFIRM_COMMANDS) if (re.test(part)) return label;
   }
