@@ -1123,7 +1123,8 @@ function cmdCheckExport(file) {
   // the check ran on its final text; a later edit means running it again.
   // Only a report inside this workspace's feedback/ (real path, symlinks followed),
   // never the rulebook: a pre-approved command must not write anywhere else.
-  if (!within(file, join(ws, 'feedback')) || within(file, ROOT)) {
+  // feedback/ itself must resolve inside the workspace too (it could be a link or junction).
+  if (!within(file, join(ws, 'feedback')) || !within(file, ws) || !within(join(ws, 'feedback'), ws) || within(file, ROOT)) {
     console.log(`${verdict}\n(Not added to the file: only reports in this workspace's feedback/ get the verdict line.)`);
     return;
   }

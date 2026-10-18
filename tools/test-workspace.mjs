@@ -494,6 +494,16 @@ test('check-export: catches this client\'s names and identifier shapes, passes c
   let linked = false;
   try { symlinkSync(outside, join(A, 'feedback', 'link.md')); linked = true; } catch { /* no symlink rights (Windows): skip */ }
   if (linked) { wsmjs(['check-export', 'feedback/link.md'], A); ok(readFileSync(outside, 'utf8') === outsideBefore, 'check-export wrote through a symlink'); rmSync(join(A, 'feedback', 'link.md')); }
+  // feedback/ itself a junction (no admin rights needed on Windows) into another workspace.
+  const otherDir = join(B, 'notes'); mkdirSync(otherDir, { recursive: true });
+  const otherReport = join(otherDir, '2026-W41.md'); writeFileSync(otherReport, '# Report\nA clean generic line.\n');
+  const realFb = join(A, 'feedback-real'); rmSync(realFb, { recursive: true, force: true });
+  execFileSync(process.platform === 'win32' ? 'cmd' : 'mv', process.platform === 'win32' ? ['/c', 'move', join(A, 'feedback'), realFb] : [join(A, 'feedback'), realFb]);
+  symlinkSync(otherDir, join(A, 'feedback'), 'junction');
+  wsmjs(['check-export', 'feedback/2026-W41.md'], A);
+  const otherAfter = readFileSync(otherReport, 'utf8');
+  rmSync(join(A, 'feedback')); execFileSync(process.platform === 'win32' ? 'cmd' : 'mv', process.platform === 'win32' ? ['/c', 'move', realFb, join(A, 'feedback')] : [realFb, join(A, 'feedback')]);
+  ok(!otherAfter.includes('No configured identifiers detected'), 'check-export wrote into another workspace through a feedback/ junction');
 });
 
 test('rulebook untouched: no hook or registry written by tests', () => {
