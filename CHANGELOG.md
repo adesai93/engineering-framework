@@ -16,7 +16,7 @@ Protections that never block a decision you've made, and network troubleshooting
   ask rules (they hold in every permission mode). Copilot: the same hook on
   terminal commands. Codex: `prompt` rules for the common commands. Commands
   that only change the laptop's CLI context (`az account set`, logins) don't ask.
-- STOP zones: one confirmation (action, target, impact, undo); once the user
+- base/principles/stop-zones.md: one confirmation (action, target, impact, undo); once the user
   says yes, do it without asking again or arguing.
 - Memory protection (warnings only): text in the notes that reads like an
   instruction to an AI ("note to the AI", "auto-approve", "ignore previous
