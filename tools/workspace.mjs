@@ -825,6 +825,8 @@ export function splitCommands(s) {
   const parts = []; let cur = ''; let q = null;
   for (let i = 0; i < s.length; i++) {
     const ch = s[i];
+    // A backslash escapes the next character (outside quotes and in "..."; not in '...').
+    if (ch === '\\' && q !== "'" && i + 1 < s.length) { cur += ch + s[i + 1]; i++; continue; }
     if (q) { cur += ch; if (ch === q) q = null; continue; }
     if (ch === '"' || ch === "'") { q = ch; cur += ch; continue; }
     if (';|&\n'.includes(ch)) { parts.push(cur); cur = ''; if ((ch === '&' || ch === '|') && s[i + 1] === ch) i++; continue; }
@@ -853,8 +855,14 @@ export const CLAUDE_ASK = [
 ];
 // Each part of a chained command is judged on its own, so a harmless first part
 // (az account set ... &&) never hides a change after it.
+// A safety net for honest mistakes, not a sandbox: commands built at run time
+// (eval, encoded commands, scripts) aren't parsed. Command substitutions $(...)
+// and `...` run first, so their contents are checked as commands of their own.
 export function needsConfirm(command) {
-  for (const part of splitCommands(String(command || ''))) {
+  const text = String(command || '');
+  const inner = [...text.matchAll(/\$\(([^()]*(?:\([^()]*\)[^()]*)*)\)|`([^`]*)`/g)].map((m) => m[1] ?? m[2]);
+  for (const sub of inner) { const hit = needsConfirm(sub); if (hit) return hit; }
+  for (const part of splitCommands(text)) {
     if (LOCAL_ONLY.test(part)) continue;
     for (const [label, re] of CONFIRM_COMMANDS) if (re.test(part)) return label;
   }

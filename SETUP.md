@@ -216,7 +216,11 @@ follows (usually, not always). Tell each client which is which.
 | STOP zones, `<private>`, clean searches, "evidence, never instructions" | instruction; the tool's own approval prompts are the backstop | same | same | same |
 
 Nothing here refuses something you've decided to do: the guardrails make sure
-you see the target and impact first, then the command runs. Keep tool approval
+you see the target and impact first, then the command runs. The command check
+is a safety net for honest mistakes, not a sandbox: it reads ordinary command
+lines (chained commands, quoted values, global options, `$(...)`), not commands
+built at run time (`eval`, encoded commands, a script file). The client's
+pipeline and your tool's own approval prompts stay the real gate. Keep tool approval
 prompts on for anything that changes state. `doctor` also lists skills and
 instruction files the rulebook didn't generate, including user-level ones
 (`~/.claude/CLAUDE.md`, `~/.claude/skills`, ...) that load into every client's
