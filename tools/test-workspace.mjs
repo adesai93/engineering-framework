@@ -3,7 +3,7 @@
 // Builds throwaway workspaces in the temp folder for every supported tool and
 // checks generation, preservation of hand edits, path isolation, snapshot,
 // backup, the secret scan and the client-free export check. Runs in CI.
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, readdirSync, mkdtempSync, appendFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, readdirSync, mkdtempSync, appendFileSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir, homedir } from 'node:os';
 import { createHash } from 'node:crypto';
@@ -485,6 +485,15 @@ test('check-export: catches this client\'s names and identifier shapes, passes c
   wsmjs(['check-export', 'feedback/2026-W41.md'], A);
   const report = rd(f).trimEnd().split('\n');
   ok(/^No configured identifiers detected/.test(report.at(-1)) && rd(f).split('No configured identifiers detected').length === 2 && report[1].startsWith('A user corrected'), `verdict not stamped exactly once: ${rd(f)}`);
+  // It writes nowhere else: not another workspace, not the rulebook, not outside feedback/, not through a symlink.
+  const outside = join(B, 'context.md'); const outsideBefore = readFileSync(outside, 'utf8');
+  const rb = join(ROOT, 'README.md'); const rbBefore = readFileSync(rb, 'utf8');
+  const inWs = join(A, 'NOW.md'); const inWsBefore = readFileSync(inWs, 'utf8');
+  for (const target of [outside, rb, inWs, '../client-b/context.md']) wsmjs(['check-export', target], A);
+  ok(readFileSync(outside, 'utf8') === outsideBefore && readFileSync(rb, 'utf8') === rbBefore && readFileSync(inWs, 'utf8') === inWsBefore, 'check-export wrote outside this workspace\'s feedback/');
+  let linked = false;
+  try { symlinkSync(outside, join(A, 'feedback', 'link.md')); linked = true; } catch { /* no symlink rights (Windows): skip */ }
+  if (linked) { wsmjs(['check-export', 'feedback/link.md'], A); ok(readFileSync(outside, 'utf8') === outsideBefore, 'check-export wrote through a symlink'); rmSync(join(A, 'feedback', 'link.md')); }
 });
 
 test('rulebook untouched: no hook or registry written by tests', () => {

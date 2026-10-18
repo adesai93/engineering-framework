@@ -1121,6 +1121,12 @@ function cmdCheckExport(file) {
   const verdict = `No configured identifiers detected (${terms.length} names from this workspace's notes; IP, GUID, email, handle and resource-ID patterns). Read it once yourself before it leaves.`;
   // The verdict goes into the report itself (its only write), so the report shows
   // the check ran on its final text; a later edit means running it again.
+  // Only a report inside this workspace's feedback/ (real path, symlinks followed),
+  // never the rulebook: a pre-approved command must not write anywhere else.
+  if (!within(file, join(ws, 'feedback')) || within(file, ROOT)) {
+    console.log(`${verdict}\n(Not added to the file: only reports in this workspace's feedback/ get the verdict line.)`);
+    return;
+  }
   const body = read(file).replace(/\n*(---\n)?No configured identifiers detected \([^\n]*\n?$/, '').replace(/\s+$/, '');
   writeFileSync(file, `${body}\n\n---\n${verdict}\n`);
   console.log(`${verdict}\n(Added as the report's last line.)`);
