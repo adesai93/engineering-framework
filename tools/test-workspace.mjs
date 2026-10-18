@@ -277,10 +277,12 @@ test('hooks: confirm once - state-changing commands always ask, everyday ones pa
     // Case-insensitive cmdlets, global options before the verb, a lone & between commands.
     ['PowerShell', 'remove-azresourcegroup -Name prod'], ['Bash', 'aws --profile prod ec2 terminate-instances --instance-ids x'],
     ['Bash', 'kubectl --context prod delete namespace app'], ['Bash', 'terraform -chdir=env/prd apply'], ['Bash', 'git -C repo push'],
-    ['Bash', 'az account set -s x & az vm delete -g r -n v']]) {
+    ['Bash', 'az account set -s x & az vm delete -g r -n v'], ['Bash', 'az account set -s x&az vm delete -g r -n v']]) {
     ok(asks(tool, cmd), `${tool} "${cmd}" did not ask`);
   }
-  for (const cmd of ['terraform plan -out tfplan', 'az account show -o table', 'az account set -s sub-prd', 'az network nic list-effective-nsg -g r -n n', 'az deployment group what-if -g r -f m.bicep', 'git status']) {
+  for (const cmd of ['terraform plan -out tfplan', 'az account show -o table', 'az account set -s sub-prd', 'az network nic list-effective-nsg -g r -n n', 'az deployment group what-if -g r -f m.bicep', 'git status',
+    // Change words used as search terms, resource names or quoted values aren't the subcommand.
+    'git log --oneline --grep push', 'az vm show -n create -g r', 'kubectl get pods -l app=delete', 'az rest --method get --url "https://x?a=1&b=2"']) {
     ok(!asks('Bash', cmd), `"${cmd}" asked`);
   }
   for (const cmd of ['terraform destroy', 'Remove-AzVM -Name v']) ok(!denied(runHook('guard-tool', { tool_name: 'Bash', tool_input: { command: cmd }, cwd: A })), `"${cmd}" was refused`);

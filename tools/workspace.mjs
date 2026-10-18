@@ -787,25 +787,48 @@ export function scanSecrets(ws) {
 // commands were allowed before); nothing here is refused. Commands that only
 // change this laptop's CLI context (az account set, login, extensions) aren't listed.
 const LOCAL_ONLY = /\baz\s+(account\s+set|config\s+set|extension\s+(add|update|remove)|login|logout|upgrade|bicep\s+(install|upgrade)|devops\s+configure|cloud\s+set)\b|\b(Set-AzContext|Select-AzSubscription|Connect-AzAccount|Disconnect-AzAccount|Import-AzContext|Enable-AzContextAutosave|Disable-AzContextAutosave)\b|\baws\s+(configure|sso\s+log(in|out))\b|\bgcloud\s+(config|auth)\b/i;
-// tool, then any options or arguments (global flags such as --profile, --context,
-// -chdir= or -C included), then the verb as a word of its own.
-const verbAfter = (tool, verbs) => new RegExp(`\\b${tool}\\b(?:\\s+\\S+){0,10}?\\s+(?:${verbs})(?=\\s|$)`, 'i');
+// The verb must sit where the subcommand goes, so a search term or resource
+// name that happens to be "delete" or "push" doesn't count:
+// - first: options (with or without a value) may come first, then the verb is
+//   the first plain word (git -C repo push, kubectl --context prod delete,
+//   terraform -chdir=env apply, helm, pulumi);
+// - service: aws [options] <service> [options] <verb>;
+// - path: plain words (az network nsg rule delete, gcloud compute instances delete).
+const OPTS = '(?:\\s+-{1,2}[\\w.-]+(?:=\\S+|\\s+(?!-)\\S+)?)*';
+const VERB_END = '(?=\\s|$)';
+const first = (tool, verbs) => new RegExp(`\\b${tool}\\b${OPTS}\\s+(?:${verbs})${VERB_END}`, 'i');
+const service = (tool, verbs) => new RegExp(`\\b${tool}\\b${OPTS}\\s+[a-z0-9][\\w-]*${OPTS}\\s+(?:${verbs})${VERB_END}`, 'i');
+const path = (tool, verbs, opts = '') => new RegExp(`\\b${tool}\\b${opts}(?:\\s+[a-z][\\w-]*){0,5}?\\s+(?:${verbs})${VERB_END}`, 'i');
 export const CONFIRM_COMMANDS = [
-  ['Terraform/OpenTofu state change', verbAfter('(?:terraform|tofu)', 'apply|destroy|import|taint|untaint|force-unlock|state\\s+(?:rm|mv|push|replace-provider)|workspace\\s+delete')],
-  ['Azure CLI change', verbAfter('az', 'delete|purge|create|create-for-rbac|update|set|assign|add|remove|start|stop|restart|deallocate|redeploy|deploy|import|scale|swap|reset|reset-credentials|regenerate|renew|revoke|lock|unlock|invoke|run-command|failover|test-connectivity')],
+  ['Terraform/OpenTofu state change', first('(?:terraform|tofu)', 'apply|destroy|import|taint|untaint|force-unlock|state\\s+(?:rm|mv|push|replace-provider)|workspace\\s+delete')],
+  ['Azure CLI change', path('az', 'delete|purge|create|create-for-rbac|update|set|assign|add|remove|start|stop|restart|deallocate|redeploy|deploy|import|scale|swap|reset|reset-credentials|regenerate|renew|revoke|lock|unlock|invoke|run-command|failover|test-connectivity')],
   ['Azure REST write', /\baz\s+rest\b(?=[^|;]*--method\s+(put|patch|post|delete))/i],
   ['Azure PowerShell change', /\b(New|Set|Remove|Update|Add|Start|Stop|Restart|Move|Rename|Reset|Grant|Revoke|Enable|Disable|Register|Unregister|Publish|Import|Restore|Suspend|Resume)-Az[a-z]\w*/i],
   ['Azure REST write (PowerShell)', /\bInvoke-AzRestMethod\b(?=[^|;]*-Method\s+(Put|Patch|Post|Delete))/i],
   ['Entra ID / Graph change', /\b(New|Set|Remove|Update|Add|Grant|Revoke)-(Mg|AzureAD|Entra)[a-z]\w*/i],
-  ['AWS S3 write', verbAfter('aws', 's3\\s+(?:cp|mv|rm|sync|rb|mb)')],
-  ['AWS change', verbAfter('aws', '(?:create|delete|put|update|modify|terminate|stop|start|reboot|attach|detach|associate|disassociate|authorize|revoke|run|deregister|register|replace|enable|disable|tag|untag)(?:-[\\w-]+)?')],
-  ['Google Cloud change', verbAfter('gcloud', 'create|delete|update|deploy|set-iam-policy|add-iam-policy-binding|remove-iam-policy-binding|resize|reset|stop|start')],
-  ['Kubernetes change', verbAfter('kubectl', 'apply|create|delete|replace|patch|scale|drain|cordon|uncordon|taint|edit|set|annotate|label|rollout\\s+(?:restart|undo)')],
-  ['Helm change', verbAfter('helm', 'install|upgrade|uninstall|delete|rollback')],
-  ['Pulumi run', verbAfter('pulumi', 'up|destroy|import|refresh')],
+  ['AWS S3 write', service('aws', '(?:cp|mv|rm|sync|rb|mb)')],
+  ['AWS change', service('aws', '(?:create|delete|put|update|modify|terminate|stop|start|reboot|attach|detach|associate|disassociate|authorize|revoke|run|deregister|register|replace|enable|disable|tag|untag)(?:-[\\w-]+)?')],
+  ['Google Cloud change', path('gcloud', 'create|delete|update|deploy|set-iam-policy|add-iam-policy-binding|remove-iam-policy-binding|resize|reset|stop|start', OPTS)],
+  ['Kubernetes change', first('kubectl', 'apply|create|delete|replace|patch|scale|drain|cordon|uncordon|taint|edit|set|annotate|label|rollout\\s+(?:restart|undo)')],
+  ['Helm change', first('helm', 'install|upgrade|uninstall|delete|rollback')],
+  ['Pulumi run', first('pulumi', 'up|destroy|import|refresh')],
   ['Ansible run', /\bansible-playbook\b(?![^|;]*--check)/i],
-  ['git push or history rewrite', verbAfter('git', 'push|reset\\s+--hard|clean\\s+-[a-z]*f[a-z]*|branch\\s+-D|filter-branch|filter-repo')],
+  ['git push or history rewrite', first('git', 'push|reset\\s+--hard|clean\\s+-[a-z]*f[a-z]*|branch\\s+-D|filter-branch|filter-repo')],
 ];
+// Split a command line into the commands it runs: on && || ; | & and newlines
+// outside quotes (a & inside a quoted URL stays part of its command).
+export function splitCommands(s) {
+  const parts = []; let cur = ''; let q = null;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (q) { cur += ch; if (ch === q) q = null; continue; }
+    if (ch === '"' || ch === "'") { q = ch; cur += ch; continue; }
+    if (';|&\n'.includes(ch)) { parts.push(cur); cur = ''; if ((ch === '&' || ch === '|') && s[i + 1] === ch) i++; continue; }
+    cur += ch;
+  }
+  parts.push(cur);
+  return parts;
+}
 // Codex rules match command prefixes only, so they get the common cases by name.
 export const CODEX_CONFIRM = [
   ...['terraform', 'tofu'].flatMap((t) => ['apply', 'destroy', 'import', 'taint', 'force-unlock'].map((v) => [t, v]).concat(['rm', 'mv', 'push'].map((v) => [t, 'state', v]))),
@@ -827,8 +850,7 @@ export const CLAUDE_ASK = [
 // Each part of a chained command is judged on its own, so a harmless first part
 // (az account set ... &&) never hides a change after it.
 export function needsConfirm(command) {
-  // Separators: && || ; | newline, and a lone & (run in background) between commands.
-  for (const part of String(command || '').split(/&&|\|\||[;|\n]|\s&(?=\s|$)/)) {
+  for (const part of splitCommands(String(command || ''))) {
     if (LOCAL_ONLY.test(part)) continue;
     for (const [label, re] of CONFIRM_COMMANDS) if (re.test(part)) return label;
   }
