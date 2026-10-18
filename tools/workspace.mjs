@@ -195,7 +195,7 @@ export function render({ framework, tools, client, repos, toolchains }, root = R
     const [nodeBin, script] = ['node', `${fw}/tools/workspace.mjs`];
     out['.codex/rules/engineering-framework.rules'] = `# ${note('tools/workspace.mjs').replace(/^<!-- | -->$/g, '')}\n`
       + `prefix_rule(pattern=[${tomlStr(nodeBin)}, ${tomlStr(script)}, "snapshot"], decision="allow", justification="Local snapshot of this client workspace; refuses if a git remote exists; never pushes.")\n`
-      + `prefix_rule(pattern=[${tomlStr(nodeBin)}, ${tomlStr(script)}, "check-export"], decision="allow", justification="Read-only client-free check of a report before it leaves this workspace.")\n`
+      + `prefix_rule(pattern=[${tomlStr(nodeBin)}, ${tomlStr(script)}, "check-export"], decision="allow", justification="Client-free check of a report before it leaves this workspace; its only write is its verdict line in that report.")\n`
       + `prefix_rule(pattern=[${tomlStr(nodeBin)}, ${tomlStr(`${fw}/skills/handoff/pack.mjs`)}], decision="allow", justification="Read-only: prints a paste-safe PowerShell block for the handoff skill.")\n`
       // "Confirm once" (Codex hooks see only file edits): these always ask, never refuse.
       + CODEX_CONFIRM.map((p) => `prefix_rule(pattern=${JSON.stringify(p)}, decision="prompt", justification="Changes infrastructure, access or shared code: confirm the target and impact.")\n`).join('');
@@ -241,7 +241,7 @@ export function render({ framework, tools, client, repos, toolchains }, root = R
         // and nothing chained after it (no quotes, ;, &, |, $ or backticks inside).
         'chat.tools.terminal.autoApprove': {
           [`/^${snapshotCmd(fw).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\//g, '\\/')}( "[\\w .:()#-]*")?$/`]: true,
-          // ...and the read-only client-free check on a report in feedback/.
+          // ...and the client-free check on a report in feedback/ (writes only its verdict line there).
           [`/^${exportCmd(fw).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\//g, '\\/')} feedback\\/[\\w.-]+\\.md$/`]: true,
         },
       },
@@ -285,7 +285,7 @@ function writeClaudeSettings(ws, fw, repos) {
   // Pre-approve ONLY the local snapshot command (Claude Code checks each part of a
   // chained command separately, so nothing can ride along with it).
   const allow = new Set(s.permissions.allow || []);
-  // snapshot, the read-only client-free check and the read-only handoff packer;
+  // snapshot, the client-free check (writes only its verdict into the report) and the read-only handoff packer;
   // with the path quoted or not, from Bash or (on Windows) the PowerShell tool.
   for (const tool of ['Bash', 'PowerShell']) {
     for (const [script, arg] of [['tools/workspace.mjs', ' snapshot'], ['tools/workspace.mjs', ' check-export'], ['skills/handoff/pack.mjs', '']]) {
@@ -1118,7 +1118,12 @@ function cmdCheckExport(file) {
     process.exit(1);
   }
   // A filter, not a certificate: it only knows what this workspace's notes name.
-  console.log(`No configured identifiers detected (${terms.length} names from this workspace's notes; IP, GUID, email, handle and resource-ID patterns). Read it once yourself before it leaves.`);
+  const verdict = `No configured identifiers detected (${terms.length} names from this workspace's notes; IP, GUID, email, handle and resource-ID patterns). Read it once yourself before it leaves.`;
+  // The verdict goes into the report itself (its only write), so the report shows
+  // the check ran on its final text; a later edit means running it again.
+  const body = read(file).replace(/\n*(---\n)?No configured identifiers detected \([^\n]*\n?$/, '').replace(/\s+$/, '');
+  writeFileSync(file, `${body}\n\n---\n${verdict}\n`);
+  console.log(`${verdict}\n(Added as the report's last line.)`);
 }
 
 // Offboarding: stop refreshing a workspace on this machine (after it has been

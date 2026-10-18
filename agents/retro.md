@@ -41,11 +41,11 @@ The report leaves this client. Before saving it:
   (<client>, <person>/<role>, <vm>, <nsg>, <ticket>, <cidr>, <org>).
 - No personal names at all, even first names that appear only in chat or
   logs (not in context.md): "<person>'s change" -> "a user's change".
-- Check it with the tool, from this workspace (pre-approved, read-only; fix
+- Check it with the tool, from this workspace (pre-approved; fix
   every hit, run again):
   `node {{FRAMEWORK}}/tools/workspace.mjs check-export feedback/<YYYY>-W<ww>.md`
   It catches names, people, resources, domains, IPs, GUIDs, emails and IDs.
   Also read for capitalized words that aren't tech terms (maybe a person).
-- Run it after your last edit; its last line ("No configured identifiers
-  detected ...") becomes the report's last line. Never write that line if
-  the tool didn't print it. It's a filter, not proof: tell me to read it.
+- Run it after your last edit: when it passes it adds its verdict as the
+  report's last line (never write that line yourself). It's a filter, not
+  proof: tell me to read the report before it leaves.

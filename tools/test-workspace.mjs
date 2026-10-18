@@ -481,6 +481,10 @@ test('check-export: catches this client\'s names and identifier shapes, passes c
   writeFileSync(f, '# Report\nA user corrected the agent twice about a <vnet> peering at 10:30:00. See learn.microsoft.com and use [Net.ServicePointManager]::SecurityProtocol. Suggested change: agents/team.md.\n');
   const r = wsmjs(['check-export', 'feedback/2026-W41.md'], A);
   ok(r.code === 0 && /No configured identifiers detected/.test(r.out) && /Read it once yourself/.test(r.out), `clean report flagged: ${r.out}`);
+  // The verdict becomes the report's last line, once, even when the check runs again.
+  wsmjs(['check-export', 'feedback/2026-W41.md'], A);
+  const report = rd(f).trimEnd().split('\n');
+  ok(/^No configured identifiers detected/.test(report.at(-1)) && rd(f).split('No configured identifiers detected').length === 2 && report[1].startsWith('A user corrected'), `verdict not stamped exactly once: ${rd(f)}`);
 });
 
 test('rulebook untouched: no hook or registry written by tests', () => {

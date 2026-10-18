@@ -287,7 +287,7 @@ What gets generated in the workspace:
 | AGENTS.md | team rules (Codex reads it natively) |
 | .agents/skills/<name>/SKILL.md | the skills (onboard, update-team, check-setup are `$skill`-only) |
 | .codex/agents/*.toml | architect, engineer, security (asks for a read-only sandbox, but Codex applies the session's), pm, retro |
-| .codex/rules/engineering-framework.rules | pre-approves ONLY the local snapshot, the read-only check-export and the handoff packer |
+| .codex/rules/engineering-framework.rules | pre-approves ONLY the local snapshot, check-export (writes only its verdict line into the report) and the read-only handoff packer |
 | .codex/hooks.json | the same hooks as Claude Code, on file edits (apply_patch) |
 
 Set up:

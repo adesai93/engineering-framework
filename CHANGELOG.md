@@ -34,8 +34,9 @@ which skill fires and whether a rule still earns its place.
   PowerShell tool on Windows too (an agent retrying there was asked to
   approve); handoff blocks that change something name and select their target
   subscription/account first; Terraform and Bicep skill descriptions say which
-  requests they're not for (a Terraform request loaded both); retro runs the
-  client-free check after its last edit; three scenario checks no longer reject
+  requests they're not for (a Terraform request loaded both); `check-export`
+  now adds its verdict as the report's last line when it passes (the retro
+  left it out 1 time in 3); three scenario checks no longer reject
   correct replies.
 
 ## [0.19.0] - 2026-10-18
