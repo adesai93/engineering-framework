@@ -786,7 +786,9 @@ export function scanSecrets(ws) {
 // code. The confirm-command hook makes the tool ask every time (even if similar
 // commands were allowed before); nothing here is refused. Commands that only
 // change this laptop's CLI context (az account set, login, extensions) aren't listed.
-const LOCAL_ONLY = /\baz\s+(account\s+set|config\s+set|extension\s+(add|update|remove)|login|logout|upgrade|bicep\s+(install|upgrade)|devops\s+configure|cloud\s+set)\b|\b(Set-AzContext|Select-AzSubscription|Connect-AzAccount|Disconnect-AzAccount|Import-AzContext|Enable-AzContextAutosave|Disable-AzContextAutosave)\b|\baws\s+(configure|sso\s+log(in|out))\b|\bgcloud\s+(config|auth)\b/i;
+// Applies only when the command itself starts with one (text inside a change's
+// arguments, e.g. a tag value "az login", never exempts it).
+const LOCAL_ONLY = /^\s*(?:&\s*)?(?:\baz\s+(account\s+set|config\s+set|extension\s+(add|update|remove)|login|logout|upgrade|bicep\s+(install|upgrade)|devops\s+configure|cloud\s+set)\b|\b(Set-AzContext|Select-AzSubscription|Connect-AzAccount|Disconnect-AzAccount|Import-AzContext|Enable-AzContextAutosave|Disable-AzContextAutosave)\b|\baws\s+(configure|sso\s+log(in|out))\b|\bgcloud\s+(config|auth)\b)/i;
 // The verb must sit where the subcommand goes, so a search term or resource
 // name that happens to be "delete" or "push" doesn't count:
 // - first: options (with or without a value) may come first, then the verb is
@@ -794,7 +796,9 @@ const LOCAL_ONLY = /\baz\s+(account\s+set|config\s+set|extension\s+(add|update|r
 //   terraform -chdir=env apply, helm, pulumi);
 // - service: aws [options] <service> [options] <verb>;
 // - path: plain words (az network nsg rule delete, gcloud compute instances delete).
-const OPTS = '(?:\\s+-{1,2}[\\w.-]+(?:=\\S+|\\s+(?!-)\\S+)?)*';
+// An option's value: a quoted string ("my repo") is one argument.
+const ARG = `(?:"[^"]*"|'[^']*'|\\S+)`;
+const OPTS = `(?:\\s+-{1,2}[\\w.-]+(?:=${ARG}|\\s+(?!-)${ARG})?)*`;
 const VERB_END = '(?=\\s|$)';
 const first = (tool, verbs) => new RegExp(`\\b${tool}\\b${OPTS}\\s+(?:${verbs})${VERB_END}`, 'i');
 const service = (tool, verbs) => new RegExp(`\\b${tool}\\b${OPTS}\\s+[a-z0-9][\\w-]*${OPTS}\\s+(?:${verbs})${VERB_END}`, 'i');

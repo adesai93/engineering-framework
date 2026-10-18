@@ -277,7 +277,9 @@ test('hooks: confirm once - state-changing commands always ask, everyday ones pa
     // Case-insensitive cmdlets, global options before the verb, a lone & between commands.
     ['PowerShell', 'remove-azresourcegroup -Name prod'], ['Bash', 'aws --profile prod ec2 terminate-instances --instance-ids x'],
     ['Bash', 'kubectl --context prod delete namespace app'], ['Bash', 'terraform -chdir=env/prd apply'], ['Bash', 'git -C repo push'],
-    ['Bash', 'az account set -s x & az vm delete -g r -n v'], ['Bash', 'az account set -s x&az vm delete -g r -n v']]) {
+    ['Bash', 'az account set -s x & az vm delete -g r -n v'], ['Bash', 'az account set -s x&az vm delete -g r -n v'],
+    // A quoted option value is one argument; local-only text inside a change's arguments doesn't exempt it.
+    ['Bash', 'git -C "my repo" push origin main'], ['Bash', 'az vm update -g r -n v --set tags.note="az login"']]) {
     ok(asks(tool, cmd), `${tool} "${cmd}" did not ask`);
   }
   for (const cmd of ['terraform plan -out tfplan', 'az account show -o table', 'az account set -s sub-prd', 'az network nic list-effective-nsg -g r -n n', 'az deployment group what-if -g r -f m.bicep', 'git status',
